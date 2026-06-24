@@ -2,26 +2,33 @@
   "use strict";
 
   var SUPABASE_URL = "https://cbzckqmihqvinrmpoheq.supabase.co";
-  // Clave publica para navegador. No usar nunca service_role en frontend.
+  // Clave publica para navegador.
   var SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Mfb49L8ROtrNtOw7TFd0pw__ne-kUjR";
-  // Supabase Auth requiere email; el codigo de participante se convierte en un email tecnico interno.
-  var PARTICIPANT_EMAIL_DOMAIN = "@participantes.example.com";
+  // Supabase Auth requiere email; el usuario visible se convierte en un email tecnico interno.
+  var USER_EMAIL_DOMAIN = "@usuarios.example.com";
+  var MIN_USERNAME_LENGTH = 3;
 
-  function normalizeParticipantCode(rawCode) {
-    return String(rawCode || "")
+  function normalizeUsername(rawUsername) {
+    var normalized = String(rawUsername || "")
       .trim()
-      .toLowerCase()
+      .toLowerCase();
+
+    if (normalized.normalize) {
+      normalized = normalized.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
+
+    return normalized
       .replace(/[^a-z0-9_-]/g, "");
   }
 
-  function participantCodeToEmail(rawCode) {
-    var normalizedCode = normalizeParticipantCode(rawCode);
+  function usernameToEmail(rawUsername) {
+    var normalizedUsername = normalizeUsername(rawUsername);
 
-    if (!normalizedCode) {
+    if (!normalizedUsername || normalizedUsername.length < MIN_USERNAME_LENGTH) {
       return "";
     }
 
-    return normalizedCode + PARTICIPANT_EMAIL_DOMAIN;
+    return normalizedUsername + USER_EMAIL_DOMAIN;
   }
 
   if (!window.supabase || !window.supabase.createClient) {
@@ -42,7 +49,8 @@
   );
 
   window.supabaseAuthHelpers = {
-    normalizeParticipantCode: normalizeParticipantCode,
-    participantCodeToEmail: participantCodeToEmail
+    minimumUsernameLength: MIN_USERNAME_LENGTH,
+    normalizeUsername: normalizeUsername,
+    usernameToEmail: usernameToEmail
   };
 })();

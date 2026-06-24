@@ -3,9 +3,6 @@
 
   var PREFIX = "tesis-neuroeducacion:";
   var RESET_KEYS = [
-    // Claves heredadas de la pantalla de acceso demo anterior.
-    "demo-session",
-    "demo-participant",
     "diagnosis-result",
     "learning-progress",
     "forum-comments"
@@ -87,11 +84,6 @@
   }
 
   window.appStorage = {
-    clearLegacyAccessData: function () {
-      remove("demo-session");
-      return remove("demo-participant");
-    },
-
     getDiagnosisResult: function () {
       return read("diagnosis-result", null);
     },

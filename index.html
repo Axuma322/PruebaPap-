@@ -24,15 +24,11 @@
         <button class="access-tab" id="loginTab" type="button" role="tab" aria-selected="false" aria-controls="loginForm">Iniciar sesión</button>
       </div>
 
-      <!-- Supabase Auth: estos formularios usan correo técnico generado desde el código de participante. -->
+      <!-- Supabase Auth: estos formularios usan un email técnico generado desde el usuario. -->
       <form class="access-form" id="registerForm" role="tabpanel" aria-labelledby="registerTab">
         <label>
-          Código de participante
-          <input id="registerCode" name="participantCode" type="text" autocomplete="username" required>
-        </label>
-        <label>
-          Nombre visible
-          <input id="registerName" name="visibleName" type="text" maxlength="60" required>
+          Usuario
+          <input id="registerUsername" name="username" type="text" autocomplete="username" minlength="3" required>
         </label>
         <label>
           Contraseña
@@ -48,8 +44,8 @@
 
       <form class="access-form" id="loginForm" role="tabpanel" aria-labelledby="loginTab" hidden>
         <label>
-          Código de participante
-          <input id="loginCode" name="participantCode" type="text" autocomplete="username" required>
+          Usuario
+          <input id="loginUsername" name="username" type="text" autocomplete="username" minlength="3" required>
         </label>
         <label>
           Contraseña

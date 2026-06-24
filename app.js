@@ -47,15 +47,19 @@
     }
   }
 
-  function getUserDisplayName() {
+  function getCurrentUsername() {
     var metadata = appState.user && appState.user.user_metadata;
 
     if (appState.profile) {
-      return appState.profile.display_name || appState.profile.participant_code || "";
+      return appState.profile.username || "";
     }
 
     if (metadata) {
-      return metadata.display_name || metadata.participant_code || "";
+      return metadata.username || "";
+    }
+
+    if (appState.user && appState.user.email) {
+      return appState.user.email.split("@")[0];
     }
 
     return "";
@@ -74,11 +78,11 @@
     var message = (error && error.message ? error.message : "").toLowerCase();
 
     if (message.includes("already") || message.includes("registered") || message.includes("exists")) {
-      return "Ya existe una cuenta con ese código de participante.";
+      return "Ya existe una cuenta con ese usuario.";
     }
 
     if (message.includes("invalid login") || message.includes("invalid credentials")) {
-      return "Código de participante o contraseña incorrectos.";
+      return "Usuario o contraseña incorrectos.";
     }
 
     if (message.includes("password")) {
@@ -107,7 +111,7 @@
   function updateSessionWidget() {
     var widget = byId("sessionWidget");
     var label = byId("sessionLabel");
-    var displayName = getUserDisplayName();
+    var username = getCurrentUsername();
 
     if (!appState.user) {
       widget.hidden = true;
@@ -115,19 +119,19 @@
       return;
     }
 
-    label.textContent = "Sesión: " + (displayName || appState.user.email || "Usuario");
+    label.textContent = "Sesión: " + (username || "Usuario");
     widget.hidden = false;
   }
 
   function updateForumIdentity() {
     var identity = byId("forumIdentity");
-    var displayName = getUserDisplayName();
+    var username = getCurrentUsername();
 
     if (!identity) {
       return;
     }
 
-    identity.textContent = "Publicando como: " + (displayName || "Participante");
+    identity.textContent = "Publicando como: " + (username || "Usuario");
   }
 
   function resetAuthState() {
@@ -168,7 +172,7 @@
 
     profileResponse = await supabaseClient
       .from("profiles")
-      .select("id, participant_code, display_name")
+      .select("id, username")
       .eq("id", user.id)
       .maybeSingle();
 
@@ -190,14 +194,14 @@
     appState.remoteProgress = progressResponse.data;
   }
 
-  async function createInitialProfileAndProgress(user, participantCode, visibleName) {
+  async function createInitialProfileAndProgress(user, username) {
     var profileInsert;
     var progressInsert;
 
     profileInsert = await supabaseClient.from("profiles").insert({
       id: user.id,
-      participant_code: participantCode,
-      display_name: visibleName
+      username: username,
+      display_name: username
     });
 
     if (profileInsert.error) {
@@ -220,12 +224,11 @@
     event.preventDefault();
 
     var form = event.currentTarget;
-    var rawParticipantCode = form.elements.participantCode.value;
-    var participantCode = isAuthReady() ? authHelpers.normalizeParticipantCode(rawParticipantCode) : "";
-    var visibleName = form.elements.visibleName.value.trim();
+    var rawUsername = form.elements.username.value;
+    var username = isAuthReady() ? authHelpers.normalizeUsername(rawUsername) : "";
     var password = form.elements.password.value;
     var passwordConfirm = form.elements.passwordConfirm.value;
-    var email = isAuthReady() ? authHelpers.participantCodeToEmail(rawParticipantCode) : "";
+    var email = isAuthReady() ? authHelpers.usernameToEmail(rawUsername) : "";
     var signUpResponse;
 
     if (!isAuthReady()) {
@@ -233,8 +236,13 @@
       return;
     }
 
-    if (!participantCode || !visibleName || !password || !passwordConfirm) {
+    if (!rawUsername.trim() || !password || !passwordConfirm) {
       setAccessMessage("registerMessage", "Completa todos los campos para continuar.");
+      return;
+    }
+
+    if (!username || username.length < authHelpers.minimumUsernameLength) {
+      setAccessMessage("registerMessage", "El usuario debe tener al menos " + authHelpers.minimumUsernameLength + " caracteres válidos.");
       return;
     }
 
@@ -250,8 +258,7 @@
         password: password,
         options: {
           data: {
-            participant_code: participantCode,
-            display_name: visibleName
+            username: username
           }
         }
       });
@@ -270,19 +277,19 @@
         Array.isArray(signUpResponse.data.user.identities)
         && signUpResponse.data.user.identities.length === 0
       ) {
-        setAccessMessage("registerMessage", "Ya existe una cuenta con ese código de participante.");
+        setAccessMessage("registerMessage", "Ya existe una cuenta con ese usuario.");
         return;
       }
 
       if (!signUpResponse.data.session) {
         setAccessMessage(
           "registerMessage",
-          "La cuenta fue creada, pero Supabase requiere confirmación por correo. Para este flujo con código de participante, desactiva la confirmación de email o usa correos reales."
+          "La cuenta fue creada, pero Supabase requiere confirmación por correo. Para este flujo con usuario, desactiva la confirmación de email o usa correos reales."
         );
         return;
       }
 
-      await createInitialProfileAndProgress(signUpResponse.data.user, participantCode, visibleName);
+      await createInitialProfileAndProgress(signUpResponse.data.user, username);
       await loadSupabaseUserState(signUpResponse.data.user);
 
       form.reset();
@@ -297,10 +304,10 @@
     event.preventDefault();
 
     var form = event.currentTarget;
-    var rawParticipantCode = form.elements.participantCode.value;
-    var participantCode = isAuthReady() ? authHelpers.normalizeParticipantCode(rawParticipantCode) : "";
+    var rawUsername = form.elements.username.value;
+    var username = isAuthReady() ? authHelpers.normalizeUsername(rawUsername) : "";
     var password = form.elements.password.value;
-    var email = isAuthReady() ? authHelpers.participantCodeToEmail(rawParticipantCode) : "";
+    var email = isAuthReady() ? authHelpers.usernameToEmail(rawUsername) : "";
     var signInResponse;
 
     if (!isAuthReady()) {
@@ -308,8 +315,13 @@
       return;
     }
 
-    if (!participantCode || !password) {
+    if (!rawUsername.trim() || !password) {
       setAccessMessage("loginMessage", "Completa los campos para iniciar sesión.");
+      return;
+    }
+
+    if (!username || username.length < authHelpers.minimumUsernameLength) {
+      setAccessMessage("loginMessage", "El usuario debe tener al menos " + authHelpers.minimumUsernameLength + " caracteres válidos.");
       return;
     }
 
@@ -344,7 +356,6 @@
       await supabaseClient.auth.signOut();
     }
 
-    storage.clearLegacyAccessData();
     resetAuthState();
 
     if (window.location.hash) {
@@ -773,7 +784,7 @@
     mainColumn.appendChild(evaluationSection);
 
     sideColumn.appendChild(createElement("strong", "", "Resumen de avance"));
-    sideColumn.appendChild(createElement("p", "", "Participante: " + (getUserDisplayName() || "Participante")));
+    sideColumn.appendChild(createElement("p", "", "Usuario: " + (getCurrentUsername() || "Usuario")));
     sideColumn.appendChild(createElement("p", "", "Nota mínima: " + data.settings.minimumScore + "%"));
     sideColumn.appendChild(createElement("p", "", "Estado actual: " + getStageStatus(stage, progress)));
 
@@ -943,7 +954,7 @@
     event.preventDefault();
 
     var form = event.currentTarget;
-    var name = getUserDisplayName() || "Participante";
+    var name = getCurrentUsername() || "Usuario";
     var comment = form.elements.comment.value.trim();
 
     if (!comment) {
