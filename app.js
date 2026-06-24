@@ -486,12 +486,36 @@
     renderForumComments();
   }
 
+  function setupDevelopmentResetButton() {
+    var resetButton = byId("resetTestDataButton");
+
+    if (!resetButton) {
+      return;
+    }
+
+    // Herramienta temporal de desarrollo para pruebas locales.
+    // Retirar antes de convertir esta vitrina en una versión de producción.
+    resetButton.addEventListener("click", function () {
+      var confirmed = window.confirm(
+        "Esta herramienta temporal borrará diagnóstico, progreso y comentarios guardados en este navegador. ¿Deseas continuar?"
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      storage.clearTestData();
+      window.location.reload();
+    });
+  }
+
   function init() {
     renderHero();
     renderInfoCards();
     renderDiagnosis();
     renderLearningPath();
     renderForum();
+    setupDevelopmentResetButton();
   }
 
   document.addEventListener("DOMContentLoaded", init);

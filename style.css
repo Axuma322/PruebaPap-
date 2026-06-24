@@ -641,8 +641,28 @@ button {
 
 .site-footer {
   color: var(--muted);
+  display: grid;
+  gap: 12px;
+  justify-items: center;
   padding: 24px 20px 34px;
   text-align: center;
+}
+
+.dev-reset-button {
+  background: #fff8ef;
+  border: 1px dashed var(--accent-warm);
+  border-radius: 6px;
+  color: #6a3f2c;
+  font-size: 0.9rem;
+  font-weight: 800;
+  min-height: 40px;
+  padding: 8px 14px;
+}
+
+.dev-reset-button:hover,
+.dev-reset-button:focus-visible {
+  background: #ffefdf;
+  outline: 3px solid rgba(184, 107, 75, 0.18);
 }
 
 @media (max-width: 980px) {

@@ -2,6 +2,7 @@
   "use strict";
 
   var PREFIX = "tesis-neuroeducacion:";
+  var TEST_DATA_KEYS = ["diagnosis-result", "learning-progress", "forum-comments"];
   var memoryStore = {};
 
   function hasLocalStorage() {
@@ -54,6 +55,22 @@
     }
   }
 
+  function remove(key) {
+    var storageKey = PREFIX + key;
+
+    try {
+      if (localStorageAvailable) {
+        window.localStorage.removeItem(storageKey);
+      }
+
+      delete memoryStore[storageKey];
+      return true;
+    } catch (error) {
+      delete memoryStore[storageKey];
+      return false;
+    }
+  }
+
   function getDefaultProgress() {
     return {
       unlockedStages: ["A"],
@@ -93,6 +110,11 @@
       comments.unshift(comment);
       this.saveForumComments(comments);
       return comments;
+    },
+
+    // Herramienta temporal de desarrollo: limpia solo datos de prueba locales.
+    clearTestData: function () {
+      TEST_DATA_KEYS.forEach(remove);
     }
   };
 })();
