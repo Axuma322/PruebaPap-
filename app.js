@@ -8,7 +8,11 @@
   var appState = {
     user: null,
     profile: null,
-    remoteProgress: null
+    remoteProgress: null,
+    diagnosisResult: null,
+    quizScores: {},
+    forumPosts: [],
+    remoteDataLoaded: false
   };
   var latestStageFeedback = null;
 
@@ -146,6 +150,178 @@
     return "La contraseña debe incluir " + missingRules.join(", ") + ".";
   }
 
+  function setSyncNotice(message) {
+    var notice = byId("syncNotice");
+
+    if (!notice) {
+      return;
+    }
+
+    notice.hidden = !message;
+    notice.textContent = message || "";
+  }
+
+  function getDefaultProgressRow() {
+    return {
+      user_id: appState.user ? appState.user.id : "",
+      diagnostic_completed: false,
+      current_stage: "A",
+      completed_stages: []
+    };
+  }
+
+  function normalizeProgressRow(row) {
+    var normalized = row || getDefaultProgressRow();
+    var completedStages = Array.isArray(normalized.completed_stages)
+      ? normalized.completed_stages
+      : [];
+    var currentStage = normalized.current_stage || "A";
+    var firstPendingStage = data.learningPath.stages.find(function (stage) {
+      return !completedStages.includes(stage.id);
+    });
+
+    if (completedStages.includes(currentStage) && firstPendingStage) {
+      currentStage = firstPendingStage.id;
+    }
+
+    return {
+      user_id: normalized.user_id || (appState.user ? appState.user.id : ""),
+      diagnostic_completed: Boolean(normalized.diagnostic_completed),
+      current_stage: currentStage,
+      completed_stages: completedStages
+    };
+  }
+
+  function remoteProgressToLearningProgress(row) {
+    var progressRow = normalizeProgressRow(row);
+    var unlockedStages = ["A"];
+    var completedStages = progressRow.completed_stages.slice();
+
+    completedStages.forEach(function (stageId) {
+      addUnique(unlockedStages, stageId);
+    });
+
+    if (progressRow.current_stage) {
+      addUnique(unlockedStages, progressRow.current_stage);
+    }
+
+    return normalizeProgress({
+      unlockedStages: unlockedStages,
+      completedStages: completedStages,
+      scores: appState.quizScores || {}
+    });
+  }
+
+  function getLearningProgressForRender() {
+    if (appState.remoteProgress) {
+      return remoteProgressToLearningProgress(appState.remoteProgress);
+    }
+
+    return normalizeProgress(storage.getLearningProgress());
+  }
+
+  async function saveRemoteProgress(fields) {
+    var current = normalizeProgressRow(appState.remoteProgress);
+    var payload;
+    var response;
+
+    if (!appState.user) {
+      throw new Error("No hay usuario autenticado para guardar progreso.");
+    }
+
+    payload = {
+      user_id: appState.user.id,
+      diagnostic_completed: fields.diagnostic_completed !== undefined
+        ? fields.diagnostic_completed
+        : current.diagnostic_completed,
+      current_stage: fields.current_stage || current.current_stage || "A",
+      completed_stages: Array.isArray(fields.completed_stages)
+        ? fields.completed_stages
+        : current.completed_stages
+    };
+
+    response = await supabaseClient
+      .from("progress")
+      .upsert(payload, { onConflict: "user_id" })
+      .select("user_id, diagnostic_completed, current_stage, completed_stages")
+      .maybeSingle();
+
+    if (response.error) {
+      throw response.error;
+    }
+
+    appState.remoteProgress = normalizeProgressRow(response.data || payload);
+    storage.saveLearningProgress(remoteProgressToLearningProgress(appState.remoteProgress));
+    return appState.remoteProgress;
+  }
+
+  async function loadLatestDiagnosticAnswer() {
+    var response = await supabaseClient
+      .from("diagnostic_answers")
+      .select("id, answers, score, created_at")
+      .eq("user_id", appState.user.id)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    var answerRow;
+
+    if (response.error) {
+      throw response.error;
+    }
+
+    answerRow = response.data && response.data[0];
+
+    if (!answerRow) {
+      appState.diagnosisResult = null;
+      return null;
+    }
+
+    appState.diagnosisResult = {
+      score: answerRow.score,
+      label: getDiagnosisLabel(answerRow.score),
+      answers: answerRow.answers || [],
+      createdAt: answerRow.created_at || new Date().toISOString()
+    };
+    storage.saveDiagnosisResult(appState.diagnosisResult);
+    return appState.diagnosisResult;
+  }
+
+  async function loadQuizAttempts() {
+    var response = await supabaseClient
+      .from("quiz_attempts")
+      .select("id, stage_key, answers, score, passed, created_at")
+      .eq("user_id", appState.user.id)
+      .order("created_at", { ascending: false });
+
+    if (response.error) {
+      throw response.error;
+    }
+
+    appState.quizScores = {};
+
+    (response.data || []).forEach(function (attempt) {
+      if (attempt.stage_key && appState.quizScores[attempt.stage_key] === undefined) {
+        appState.quizScores[attempt.stage_key] = attempt.score;
+      }
+    });
+
+    return response.data || [];
+  }
+
+  async function loadForumPosts() {
+    var response = await supabaseClient
+      .from("forum_posts")
+      .select("id, display_name, content, created_at")
+      .order("created_at", { ascending: false })
+      .limit(80);
+
+    if (response.error) {
+      throw response.error;
+    }
+
+    appState.forumPosts = response.data || [];
+    return appState.forumPosts;
+  }
+
   function setAccessMode(mode) {
     var isRegister = mode === "register";
 
@@ -188,6 +364,10 @@
     appState.user = null;
     appState.profile = null;
     appState.remoteProgress = null;
+    appState.diagnosisResult = null;
+    appState.quizScores = {};
+    appState.forumPosts = [];
+    appState.remoteDataLoaded = false;
     storage.setCurrentStorageUser("");
   }
 
@@ -196,7 +376,9 @@
   }
 
   function refreshDiagnosisForCurrentUser() {
-    var result = storage.getDiagnosisResult();
+    var result = appState.remoteDataLoaded
+      ? appState.diagnosisResult
+      : storage.getDiagnosisResult();
     var form = byId("diagnosisForm");
     var startButton = byId("startDiagnosisButton");
 
@@ -234,6 +416,7 @@
     document.body.classList.remove("access-required");
     updateSessionWidget();
     updateForumIdentity();
+    renderForumComments();
     refreshUserScopedContent();
   }
 
@@ -264,8 +447,21 @@
     }
 
     appState.profile = profileResponse.data;
-    appState.remoteProgress = progressResponse.data;
+    appState.remoteProgress = normalizeProgressRow(progressResponse.data || getDefaultProgressRow());
     storage.setCurrentStorageUser(getCurrentUsername() || user.id);
+
+    if (!progressResponse.data) {
+      await saveRemoteProgress(getDefaultProgressRow());
+    } else {
+      storage.saveLearningProgress(remoteProgressToLearningProgress(appState.remoteProgress));
+    }
+
+    await loadLatestDiagnosticAnswer();
+    await loadQuizAttempts();
+    storage.saveLearningProgress(remoteProgressToLearningProgress(appState.remoteProgress));
+    await loadForumPosts();
+    appState.remoteDataLoaded = true;
+    setSyncNotice("");
   }
 
   async function createInitialProfileAndProgress(user, username) {
@@ -562,7 +758,7 @@
 
     empty(box);
     box.hidden = false;
-    box.appendChild(createElement("strong", "", "Resultado temporal: " + result.score + "%"));
+    box.appendChild(createElement("strong", "", "Resultado sincronizado: " + result.score + "%"));
     box.appendChild(createElement("span", "", result.label + " - " + formatDate(result.createdAt)));
   }
 
@@ -606,11 +802,11 @@
       form.appendChild(fieldset);
     });
 
-    form.appendChild(createElement("button", "primary-button", "Guardar resultado temporal"));
+    form.appendChild(createElement("button", "primary-button", "Guardar resultado"));
     form.hidden = false;
   }
 
-  function handleDiagnosisSubmit(event) {
+  async function handleDiagnosisSubmit(event) {
     event.preventDefault();
 
     var formData = new FormData(event.currentTarget);
@@ -640,7 +836,26 @@
       createdAt: new Date().toISOString()
     };
 
-    storage.saveDiagnosisResult(result);
+    try {
+      var diagnosisResponse = await supabaseClient.from("diagnostic_answers").insert({
+        user_id: appState.user.id,
+        answers: answers,
+        score: score
+      });
+
+      if (diagnosisResponse.error) {
+        throw diagnosisResponse.error;
+      }
+
+      await saveRemoteProgress({ diagnostic_completed: true });
+      appState.diagnosisResult = result;
+      storage.saveDiagnosisResult(result);
+      setSyncNotice("");
+    } catch (error) {
+      storage.saveDiagnosisResult(result);
+      setSyncNotice("No se pudo sincronizar el diagnóstico con Supabase. Se guardó una copia local de respaldo para este navegador.");
+    }
+
     renderDiagnosisResult(result);
     event.currentTarget.hidden = true;
     byId("startDiagnosisButton").textContent = "Repetir diagnóstico";
@@ -650,7 +865,7 @@
     byId("diagnosisTitle").textContent = data.diagnosis.title;
     byId("diagnosisDescription").textContent = data.diagnosis.description;
     renderDiagnosisQuestions();
-    renderDiagnosisResult(storage.getDiagnosisResult());
+    renderDiagnosisResult(appState.diagnosisResult || storage.getDiagnosisResult());
 
     byId("startDiagnosisButton").addEventListener("click", renderDiagnosisForm);
     byId("diagnosisForm").addEventListener("submit", handleDiagnosisSubmit);
@@ -888,7 +1103,7 @@
     container.appendChild(detail);
   }
 
-  function handleEvaluationSubmit(event, stage) {
+  async function handleEvaluationSubmit(event, stage) {
     event.preventDefault();
 
     var formData = new FormData(event.currentTarget);
@@ -914,21 +1129,23 @@
     var score = quiz.questions.length
       ? Math.round((correctAnswers / quiz.questions.length) * 100)
       : 0;
-    var progress = normalizeProgress(storage.getLearningProgress());
+    var progress = getLearningProgressForRender();
     var minimumScore = data.settings.minimumScore;
     var nextStageId = getNextStageId(stage.id);
     var passed = score >= minimumScore;
 
     progress.scores[stage.id] = score;
 
-    storage.addEvaluationAttempt({
+    var attempt = {
       id: String(Date.now()),
       stageId: stage.id,
       score: score,
       passed: passed,
       answers: selectedAnswers,
       createdAt: new Date().toISOString()
-    });
+    };
+
+    storage.addEvaluationAttempt(attempt);
 
     if (passed) {
       addUnique(progress.completedStages, stage.id);
@@ -952,8 +1169,34 @@
       };
     }
 
-    // Temporal: luego guardar cada intento de mini evaluacion en la tabla quiz_attempts.
     storage.saveLearningProgress(progress);
+    appState.quizScores[stage.id] = score;
+
+    try {
+      var attemptResponse = await supabaseClient.from("quiz_attempts").insert({
+        user_id: appState.user.id,
+        stage_key: stage.id,
+        answers: selectedAnswers,
+        score: score,
+        passed: passed
+      });
+
+      if (attemptResponse.error) {
+        throw attemptResponse.error;
+      }
+
+      if (passed) {
+        await saveRemoteProgress({
+          current_stage: nextStageId || stage.id,
+          completed_stages: progress.completedStages
+        });
+      }
+
+      setSyncNotice("");
+    } catch (error) {
+      setSyncNotice("No se pudo sincronizar la mini evaluación con Supabase. Se conservó una copia local de respaldo en este navegador.");
+    }
+
     renderLearningPath();
   }
 
@@ -999,7 +1242,7 @@
   function renderLearningPath() {
     var routeSection = byId("ruta");
     var container = byId("stageGrid");
-    var progress = normalizeProgress(storage.getLearningProgress());
+    var progress = getLearningProgressForRender();
     var selectedStage = getSelectedStageFromHash();
     var selectedStageIsUnlocked = selectedStage && progress.unlockedStages.includes(selectedStage.id);
 
@@ -1030,23 +1273,25 @@
 
   function renderForumComments() {
     var container = byId("commentList");
-    var comments = storage.getForumComments();
+    var comments = appState.remoteDataLoaded
+      ? appState.forumPosts
+      : storage.getForumComments();
     empty(container);
 
     if (!comments.length) {
-      container.appendChild(createElement("p", "empty-state", "Aún no hay comentarios guardados en esta versión."));
+      container.appendChild(createElement("p", "empty-state", "Aún no hay publicaciones en el foro."));
       return;
     }
 
     comments.forEach(function (comment) {
       var card = createElement("article", "comment-card");
       var header = document.createElement("header");
-      var author = createElement("strong", "", comment.username || comment.name);
+      var author = createElement("strong", "", comment.display_name || comment.username || comment.name);
       var time = document.createElement("time");
-      var body = createElement("p", "", comment.comment);
+      var body = createElement("p", "", comment.content || comment.comment);
 
-      time.dateTime = comment.createdAt;
-      time.textContent = formatDate(comment.createdAt);
+      time.dateTime = comment.created_at || comment.createdAt;
+      time.textContent = formatDate(comment.created_at || comment.createdAt);
 
       header.appendChild(author);
       header.appendChild(time);
@@ -1056,7 +1301,7 @@
     });
   }
 
-  function handleForumSubmit(event) {
+  async function handleForumSubmit(event) {
     event.preventDefault();
 
     var form = event.currentTarget;
@@ -1067,13 +1312,23 @@
       return;
     }
 
-    storage.addForumComment({
-      id: String(Date.now()),
-      username: name,
-      name: name,
-      comment: comment,
-      createdAt: new Date().toISOString()
-    });
+    try {
+      var forumResponse = await supabaseClient.from("forum_posts").insert({
+        user_id: appState.user.id,
+        display_name: name,
+        content: comment
+      });
+
+      if (forumResponse.error) {
+        throw forumResponse.error;
+      }
+
+      await loadForumPosts();
+      setSyncNotice("");
+    } catch (error) {
+      setSyncNotice("No se pudo publicar en el foro de Supabase. Intenta de nuevo cuando la conexión esté disponible.");
+      return;
+    }
 
     form.reset();
     updateForumIdentity();
@@ -1106,10 +1361,23 @@
           return;
         }
 
-        storage.clearTestData();
+        try {
+          storage.clearTestData();
 
-        if (supabaseClient) {
-          await supabaseClient.auth.signOut();
+          if (appState.user) {
+            await saveRemoteProgress({
+              diagnostic_completed: false,
+              current_stage: "A",
+              completed_stages: []
+            });
+          }
+
+          if (supabaseClient) {
+            await supabaseClient.auth.signOut();
+          }
+        } catch (error) {
+          setSyncNotice("No se pudo reiniciar el progreso remoto en Supabase. Revisa la conexión e intenta nuevamente.");
+          return;
         }
 
         window.location.reload();

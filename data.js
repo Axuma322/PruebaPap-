@@ -9,7 +9,7 @@
     hero: {
       kicker: "Vitrina funcional",
       title: "Página educativa para tesis",
-      subtitle: "Primera versión visual con Supabase Auth para organizar diagnóstico, ruta de aprendizaje y foro académico antes de migrar los datos educativos a la base de datos real."
+      subtitle: "Primera versión visual con Supabase Auth y sincronización de diagnóstico, ruta de aprendizaje, evaluaciones y foro académico."
     },
     infoBoxes: [
       {
@@ -39,7 +39,7 @@
     ],
     diagnosis: {
       title: "Diagnóstico",
-      description: "Instrumento breve de ejemplo para explorar conocimientos previos. En esta versión solo se guarda un resultado temporal en localStorage.",
+      description: "Instrumento breve de ejemplo para explorar conocimientos previos. El resultado se guarda en Supabase y conserva una copia local de respaldo.",
       resultLabels: {
         low: "Necesita refuerzo inicial",
         medium: "Base en desarrollo",
@@ -214,7 +214,7 @@
       ]
     },
     forum: {
-      notice: "Aviso: este foro guarda comentarios solo en este navegador. Posteriormente se conectará a una base de datos real."
+      notice: "Aviso: este foro usa Supabase para mostrar publicaciones generales de usuarios autenticados."
     }
   };
 })();

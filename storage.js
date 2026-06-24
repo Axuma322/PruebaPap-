@@ -157,7 +157,7 @@
     },
 
     saveDiagnosisResult: function (result) {
-      // Temporal: luego migrar estos resultados a la tabla diagnostic_answers.
+      // Caché local: la fuente principal es la tabla diagnostic_answers.
       return this.saveUserData("diagnostic", result);
     },
 
@@ -167,7 +167,7 @@
     },
 
     saveLearningProgress: function (progress) {
-      // Temporal: esta vista usa progreso local; luego sincronizar con la tabla progress.
+      // Caché local: la fuente principal es la tabla progress.
       return this.saveUserData("progress", progress);
     },
 
@@ -176,6 +176,7 @@
     },
 
     addEvaluationAttempt: function (attempt) {
+      // Caché local: la fuente principal es la tabla quiz_attempts.
       var attempts = this.getEvaluationAttempts();
       attempts.unshift(attempt);
       this.saveUserData("evaluations", attempts);
@@ -183,6 +184,7 @@
     },
 
     getForumComments: function () {
+      // Datos de prueba heredados: el foro real se lee desde forum_posts.
       return read("forum-comments", []);
     },
 
@@ -191,7 +193,7 @@
     },
 
     addForumComment: function (comment) {
-      // Foro temporal global: luego reemplazar por inserciones reales en la tabla forum_posts.
+      // Datos de prueba locales heredados; el foro real inserta en forum_posts.
       var comments = this.getForumComments();
       comments.unshift(comment);
       this.saveForumComments(comments);

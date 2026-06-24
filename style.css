@@ -531,12 +531,18 @@ button {
 
 .result-box,
 .notice,
-.feedback-box {
+.feedback-box,
+.sync-notice {
   background: #fff8ef;
   border: 1px solid #ead1bd;
   border-radius: var(--radius);
   color: #6a3f2c;
   padding: 12px 14px;
+}
+
+.sync-notice {
+  margin: 0 auto 18px;
+  max-width: var(--max-width);
 }
 
 .result-box strong,

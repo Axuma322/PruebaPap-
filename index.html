@@ -101,6 +101,8 @@
   </header>
 
   <main class="page-shell">
+    <div class="sync-notice" id="syncNotice" role="status" aria-live="polite" hidden></div>
+
     <section class="module-block" id="diagnostico" aria-labelledby="diagnosisTitle">
       <div class="module-heading">
         <p class="module-number">Módulo 1</p>
@@ -116,7 +118,7 @@
 
         <div class="action-panel">
           <button class="primary-button" id="startDiagnosisButton" type="button">Iniciar diagnóstico</button>
-          <p class="helper-text">El resultado se guarda solo en este navegador.</p>
+          <p class="helper-text">El resultado se sincroniza con Supabase y se conserva una copia local de respaldo.</p>
           <div class="result-box" id="diagnosisSavedResult" hidden></div>
         </div>
       </div>
@@ -160,7 +162,7 @@
   </main>
 
   <footer class="site-footer">
-    <p>Prototipo académico - versión visual con Supabase Auth y datos educativos temporales.</p>
+    <p>Prototipo académico - versión visual con Supabase Auth y sincronización de avance.</p>
     <!-- Herramienta temporal de desarrollo para pruebas locales. No es una función final de producción. -->
     <button class="dev-reset-button" id="resetTestDataButton" data-reset-test type="button">Reiniciar progreso de prueba</button>
   </footer>
