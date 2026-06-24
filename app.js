@@ -776,6 +776,10 @@
     byId("heroTitle").textContent = data.hero.title;
     byId("heroSubtitle").textContent = data.hero.subtitle;
     byId("brainImage").src = data.settings.brainImage;
+
+    if (byId("impactText")) {
+      byId("impactText").textContent = data.impact;
+    }
   }
 
   function renderInfoCards() {
@@ -789,7 +793,7 @@
       var title = createElement("strong", "", box.title);
       var summary = createElement("span", "", box.summary);
       var symbol = createElement("span", "toggle-symbol", "+");
-      var panel = createElement("div", "info-panel", box.content);
+      var panel = createElement("div", "info-panel");
       var panelId = "info-panel-" + index;
 
       button.type = "button";
@@ -797,6 +801,20 @@
       button.setAttribute("aria-controls", panelId);
       panel.id = panelId;
       panel.hidden = true;
+
+      if (box.content) {
+        panel.appendChild(createElement("p", "", box.content));
+      }
+
+      if (Array.isArray(box.items)) {
+        var itemList = document.createElement("ul");
+
+        box.items.forEach(function (item) {
+          itemList.appendChild(createElement("li", "", item));
+        });
+
+        panel.appendChild(itemList);
+      }
 
       textWrapper.appendChild(title);
       textWrapper.appendChild(summary);
@@ -1134,11 +1152,11 @@
 
   function buildLearningResource(stage) {
     var resource = createElement("div", "learning-resource");
-    resource.appendChild(createElement("strong", "", "Espacio para PDF, presentación o lectura"));
+    resource.appendChild(createElement("strong", "", stage.resourceTitle || "Lectura base"));
     resource.appendChild(createElement(
       "p",
       "",
-      "Placeholder editable para insertar más adelante un PDF embebido, una presentación, una lectura o un recurso multimedia de la etapa " + stage.id + "."
+      stage.resourceDescription || "Espacio para integrar un PDF, una presentación, una lectura o un recurso multimedia vinculado con la etapa " + stage.id + "."
     ));
     return resource;
   }
@@ -1238,10 +1256,10 @@
     }
 
     mainColumn.appendChild(buildStageDetailSection("Descripción ampliada", getStageFullDescription(stage)));
-    mainColumn.appendChild(buildStageDetailSection("Introducción", stage.intro || "Introducción placeholder pendiente de edición."));
+    mainColumn.appendChild(buildStageDetailSection("Introducción", stage.intro || "Introducción de la etapa."));
     mainColumn.appendChild(materialSection);
     mainColumn.appendChild(buildStageDetailSection("Recurso de aprendizaje", buildLearningResource(stage)));
-    mainColumn.appendChild(buildStageDetailSection("Actividad", stage.activity || "Actividad placeholder pendiente de edición."));
+    mainColumn.appendChild(buildStageDetailSection("Actividad", stage.activity || "Actividad aplicada de la etapa."));
     mainColumn.appendChild(evaluationSection);
 
     sideColumn.appendChild(createElement("strong", "", "Resumen de avance"));
@@ -1561,7 +1579,26 @@
   }
 
   function renderForum() {
+    var forumDescription = byId("forumDescription");
+    var commentField = byId("forumComment");
+    var submitButton = byId("forumSubmitButton") || byId("forumForm").querySelector("button[type='submit']");
+
+    byId("forumTitle").textContent = data.forum.title;
+
+    if (forumDescription) {
+      forumDescription.textContent = data.forum.description;
+    }
+
     byId("forumNotice").textContent = data.forum.notice;
+
+    if (commentField) {
+      commentField.placeholder = data.forum.commentPrompt;
+    }
+
+    if (submitButton) {
+      submitButton.textContent = data.forum.buttonLabel;
+    }
+
     byId("forumForm").addEventListener("submit", handleForumSubmit);
     updateForumIdentity();
     renderForumComments();
@@ -1579,7 +1616,7 @@
     resetButtons.forEach(function (resetButton) {
       resetButton.addEventListener("click", async function () {
         var confirmed = window.confirm(
-          "Esta herramienta temporal borrará solo el diagnóstico, progreso y evaluaciones locales del usuario activo. El foro global temporal y otros usuarios no se borrarán. ¿Deseas continuar?"
+          "Esta acción de prueba reiniciará el diagnóstico, progreso y evaluaciones locales del usuario activo. El foro general y otros usuarios no se borrarán. ¿Deseas continuar?"
         );
 
         if (!confirmed) {

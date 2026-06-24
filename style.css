@@ -120,24 +120,6 @@ button {
   margin-top: -2px;
 }
 
-.auth-placeholder {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  color: var(--text);
-  display: grid;
-  gap: 2px;
-  min-height: 46px;
-  padding: 8px 14px;
-  text-align: left;
-}
-
-.auth-placeholder span {
-  color: var(--accent-blue);
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-
 .access-screen {
   align-items: center;
   background: var(--page-bg);
@@ -947,10 +929,6 @@ button {
   .topbar {
     align-items: stretch;
     flex-direction: column;
-  }
-
-  .auth-placeholder {
-    width: 100%;
   }
 
   .session-widget {

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Prototipo educativo de tesis</title>
+  <title>PLANNE - Plataforma Digital de Neuroliderazgo Educativo</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="data.js" defer></script>
@@ -16,7 +16,8 @@
     <div class="access-card">
       <div class="access-heading">
         <p class="eyebrow">Acceso a plataforma</p>
-        <h1 id="accessTitle">Neuroaprendizaje</h1>
+        <h1 id="accessTitle">PLANNE</h1>
+        <p>Acceda a la Plataforma Digital de Neuroliderazgo Educativo.</p>
       </div>
 
       <div class="access-tabs" role="tablist" aria-label="Modo de acceso">
@@ -66,8 +67,8 @@
       <a class="brand" href="#inicio" aria-label="Ir al inicio">
         <span class="brand-mark" aria-hidden="true">N</span>
         <span>
-          <strong>Neuroaprendizaje</strong>
-          <small>Prototipo de tesis</small>
+          <strong>PLANNE</strong>
+          <small>Neuroliderazgo educativo</small>
         </span>
       </a>
 
@@ -86,15 +87,15 @@
       </div>
 
       <figure class="brain-figure">
-        <img id="brainImage" src="assets/cerebro.png" alt="Ilustración temporal de un cerebro">
-        <figcaption>Imagen temporal reemplazable desde <code>data.js</code>.</figcaption>
+        <img id="brainImage" src="assets/cerebro.png" alt="Representación visual de un cerebro">
+        <figcaption>Neuroeducación y gestión directiva como eje de transformación institucional.</figcaption>
       </figure>
     </section>
 
-    <section class="info-area" aria-label="Cajitas informativas editables">
+    <section class="info-area" aria-label="Información de la propuesta PLANNE">
       <div class="section-heading">
-        <p class="eyebrow">Textos editables</p>
-        <h2>Cajitas superiores</h2>
+        <p class="eyebrow">Propuesta doctoral</p>
+        <h2>Marco general de PLANNE</h2>
       </div>
       <div class="info-grid" id="infoCards"></div>
     </section>
@@ -105,14 +106,14 @@
 
     <section class="module-block" id="diagnostico" aria-labelledby="diagnosisTitle">
       <div class="module-heading">
-        <p class="module-number">Módulo 1</p>
+        <p class="module-number">Módulo 1 - DNA</p>
         <h2 id="diagnosisTitle">Diagnóstico</h2>
         <p id="diagnosisDescription"></p>
       </div>
 
       <div class="diagnosis-layout">
         <div>
-          <h3>Preguntas de ejemplo</h3>
+          <h3>Ítems preliminares</h3>
           <ul class="question-list" id="diagnosisQuestionList"></ul>
         </div>
 
@@ -128,7 +129,7 @@
 
     <section class="module-block" id="ruta" aria-labelledby="learningTitle">
       <div class="module-heading">
-        <p class="module-number">Módulo 2</p>
+        <p class="module-number">Módulo 2 - RFAN</p>
         <h2 id="learningTitle">Ruta de aprendizaje</h2>
         <p id="learningDescription"></p>
         <p class="score-note" id="minimumScoreNote"></p>
@@ -139,9 +140,9 @@
 
     <section class="module-block forum-block" id="foro" aria-labelledby="forumTitle">
       <div class="module-heading">
-        <p class="module-number">Módulo 3</p>
+        <p class="module-number">Módulo 3 - COPEI</p>
         <h2 id="forumTitle">Foro</h2>
-        <p>Espacio inicial para registrar aportes visibles durante la revisión del prototipo.</p>
+        <p id="forumDescription"></p>
       </div>
 
       <div class="notice" id="forumNotice"></div>
@@ -151,10 +152,10 @@
 
         <label>
           Comentario
-          <textarea id="forumComment" name="comment" rows="4" maxlength="600" placeholder="Escribe un comentario de ejemplo..." required></textarea>
+          <textarea id="forumComment" name="comment" rows="4" maxlength="600" placeholder="Escriba aquí su reflexión o buena práctica institucional..." required></textarea>
         </label>
 
-        <button class="primary-button" type="submit">Publicar comentario</button>
+        <button class="primary-button" id="forumSubmitButton" type="submit">Publicar aporte</button>
       </form>
 
       <div class="comment-list" id="commentList" aria-live="polite"></div>
@@ -162,7 +163,7 @@
   </main>
 
   <footer class="site-footer">
-    <p>Prototipo académico - versión visual con Supabase Auth y sincronización de avance.</p>
+    <p id="impactText">PLANNE - Plataforma Digital de Neuroliderazgo Educativo.</p>
     <!-- Herramienta temporal de desarrollo para pruebas locales. No es una función final de producción. -->
     <button class="dev-reset-button" id="resetTestDataButton" data-reset-test type="button">Reiniciar progreso de prueba</button>
   </footer>

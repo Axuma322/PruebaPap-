@@ -7,106 +7,116 @@
       minimumScore: 70
     },
     hero: {
-      kicker: "Vitrina funcional",
-      title: "Página educativa para tesis",
-      subtitle: "Primera versión visual con Supabase Auth y sincronización de diagnóstico, ruta de aprendizaje, evaluaciones y foro académico."
+      kicker: "PLANNE",
+      title: "Plataforma Digital de Neuroliderazgo Educativo",
+      subtitle: "PLANNE es una plataforma web autogestionada y abierta orientada al fortalecimiento de competencias directivas vinculadas con la neuroeducación y el neuroliderazgo. Integra diagnóstico, formación adaptativa y comunidad de práctica para acompañar la transformación progresiva de la gestión educativa."
     },
     infoBoxes: [
       {
-        id: "cajita-1",
-        title: "Cajita 1",
-        summary: "Texto editable de introducción.",
-        content: "Contenido placeholder para presentar el contexto general de la tesis. Sustituir por el texto definitivo cuando esté aprobado."
+        id: "propuesta",
+        title: "PLANNE",
+        summary: "Nombre de la propuesta",
+        content: "Plataforma Digital de Neuroliderazgo Educativo. Propuesta de innovación tecnológica para fortalecer la gestión directiva desde principios de neuroeducación y neuroliderazgo."
       },
       {
-        id: "cajita-2",
-        title: "Cajita 2",
-        summary: "Texto editable de objetivo.",
-        content: "Contenido placeholder para explicar el objetivo educativo del prototipo y su relación con la población meta."
+        id: "objetivo-general",
+        title: "Objetivo general",
+        summary: "Propósito central de la plataforma",
+        content: "Diseñar una plataforma web autogestionada y abierta que fortalezca las competencias del administrador educativo vinculadas a la neuroeducación en instituciones de secundaria del circuito 04 de la Dirección Regional de Liberia, Costa Rica."
       },
       {
-        id: "cajita-3",
-        title: "Cajita 3",
-        summary: "Texto editable de metodología.",
-        content: "Contenido placeholder para describir la estrategia didáctica, los materiales y el tipo de evaluación esperada."
+        id: "objetivos-especificos",
+        title: "Objetivos específicos",
+        summary: "Contenidos, implementación y evaluación",
+        items: [
+          "Elaborar contenidos formativos basados en principios de neuroeducación y gestión educativa que respondan a las necesidades detectadas en los administradores escolares.",
+          "Implementar la plataforma web con recursos interactivos, módulos de capacitación autogestionada, autoevaluación y herramientas de gestión aplicadas.",
+          "Evaluar el impacto de la plataforma en el fortalecimiento de las competencias del administrador educativo mediante indicadores cualitativos y cuantitativos."
+        ]
       },
       {
-        id: "cajita-4",
-        title: "Cajita 4",
-        summary: "Texto editable de seguimiento.",
-        content: "Contenido placeholder para anotar criterios de seguimiento, retroalimentación o próximos pasos del proyecto."
+        id: "fundamentacion",
+        title: "Fundamentación",
+        summary: "Base académica de PLANNE",
+        content: "PLANNE responde a la brecha entre el conocimiento neuroeducativo disponible y su aplicación sistemática en la gestión directiva. La propuesta busca convertir ese conocimiento en herramientas operativas, accesibles, contextualizadas y evaluables para gestores educativos en ejercicio."
       }
     ],
     diagnosis: {
-      title: "Diagnóstico",
-      description: "Instrumento breve de ejemplo para explorar conocimientos previos. El resultado se guarda en Supabase y conserva una copia local de respaldo.",
+      title: "Módulo 1 - Diagnóstico y Autoevaluación Neuroeducativa (DNA)",
+      description: "Instrumento digital de autoevaluación orientado a identificar fortalezas, necesidades formativas y áreas de mejora en competencias directivas vinculadas con la neuroeducación. El módulo DNA construye un perfil inicial del gestor educativo para orientar la reflexión individual y servir como punto de partida de la ruta formativa.",
       resultLabels: {
-        low: "Necesita refuerzo inicial",
-        medium: "Base en desarrollo",
-        high: "Base sólida para continuar"
+        low: "Perfil inicial por fortalecer",
+        medium: "Competencias neuroeducativas en desarrollo",
+        high: "Base sólida para avanzar en neuroliderazgo"
       },
       questions: [
         {
           id: "diagnosis-1",
-          text: "¿Qué tan familiarizado estás con estrategias de aprendizaje activo?",
+          text: "Ítem preliminar 1: Reconozco la importancia de la neuroeducación en la toma de decisiones directivas.",
           options: [
-            { label: "Poco familiarizado", value: 35 },
-            { label: "Medianamente familiarizado", value: 70 },
-            { label: "Muy familiarizado", value: 100 }
+            { label: "Muy en desacuerdo", value: 25 },
+            { label: "En desacuerdo", value: 50 },
+            { label: "De acuerdo", value: 75 },
+            { label: "Muy de acuerdo", value: 100 }
           ]
         },
         {
           id: "diagnosis-2",
-          text: "¿Con qué frecuencia aplicas pausas, ejemplos o preguntas durante una explicación?",
+          text: "Ítem preliminar 2: Utilizo estrategias de autorregulación emocional en situaciones de gestión institucional.",
           options: [
-            { label: "Casi nunca", value: 30 },
-            { label: "A veces", value: 70 },
-            { label: "Frecuentemente", value: 100 }
+            { label: "Muy en desacuerdo", value: 25 },
+            { label: "En desacuerdo", value: 50 },
+            { label: "De acuerdo", value: 75 },
+            { label: "Muy de acuerdo", value: 100 }
           ]
         },
         {
           id: "diagnosis-3",
-          text: "¿Puedes identificar factores que influyen en la atención durante una clase?",
+          text: "Ítem preliminar 3: Promuevo ambientes de trabajo basados en confianza, equidad y comunicación asertiva.",
           options: [
-            { label: "Todavía no", value: 35 },
-            { label: "Identifico algunos", value: 70 },
-            { label: "Identifico varios con claridad", value: 100 }
+            { label: "Muy en desacuerdo", value: 25 },
+            { label: "En desacuerdo", value: 50 },
+            { label: "De acuerdo", value: 75 },
+            { label: "Muy de acuerdo", value: 100 }
           ]
         }
       ]
     },
     learningPath: {
-      title: "Ruta de aprendizaje",
-      description: "Secuencia de cuatro subetapas. La subetapa A inicia disponible y las siguientes se desbloquean al aprobar la mini evaluación anterior.",
+      title: "Módulo 2 - Rutas de Formación Adaptativa en Neuroliderazgo (RFAN)",
+      description: "Itinerario formativo organizado en etapas progresivas para fortalecer competencias directivas desde la neuroeducación, el neuroliderazgo, la gestión emocional y la toma de decisiones estratégica. El módulo RFAN acompaña el desarrollo de competencias vinculadas con motivación, autorregulación, comunicación, colaboración y transformación institucional.",
+      fullDescription: "El módulo RFAN ofrece una ruta autogestionada con microformaciones, actividades aplicadas y evaluaciones breves. Su finalidad es acompañar al gestor educativo en el desarrollo progresivo de competencias vinculadas con motivación, autorregulación, comunicación, colaboración y transformación institucional.",
       stages: [
         {
           id: "A",
-          title: "Título placeholder A",
-          description: "Descripción placeholder para la primera subetapa de la ruta.",
-          fullDescription: "Descripción completa placeholder para la subetapa A. Aquí se podrá ampliar el propósito, las instrucciones y los criterios de avance cuando el contenido final esté listo.",
-          intro: "Introducción placeholder de la etapa A. Usar este espacio para preparar al estudiante antes de revisar los materiales.",
+          title: "Fundamentos de neuroeducación y gestión directiva",
+          description: "Introduce la relación entre neuroeducación, gestión educativa y transformación de la práctica directiva.",
+          fullDescription: "Esta etapa presenta la base conceptual de PLANNE y permite comprender por qué la neuroeducación puede aportar herramientas relevantes para la gestión directiva. Se enfoca en la relación entre aprendizaje, motivación, toma de decisiones y liderazgo institucional.",
+          intro: "Introducción a los principios que conectan aprendizaje, cerebro, liderazgo y gestión escolar. Esta sección permite situar la experiencia formativa desde la realidad de los gestores educativos.",
           materials: [
-            "Material placeholder A.1",
-            "Material placeholder A.2",
-            "Material placeholder A.3"
+            "Lectura introductoria sobre neuroeducación y gestión educativa",
+            "Recurso de apoyo sobre neuroplasticidad y aprendizaje directivo",
+            "Actividad reflexiva sobre prácticas directivas actuales"
           ],
-          activity: "Actividad placeholder para la etapa A. Aquí se describirá una práctica, reflexión o ejercicio aplicado.",
+          resourceTitle: "Lectura base",
+          resourceDescription: "Espacio para integrar la lectura central de la etapa A, acompañada por recursos visuales o documentos de apoyo sobre neuroeducación aplicada a la gestión directiva.",
+          activity: "Actividad de reflexión: identifique una decisión directiva reciente y analice cómo influyeron la motivación, la atención, el clima institucional y la comunicación con el equipo.",
           quiz: {
             questions: [
               {
-                text: "Pregunta placeholder A.1",
+                text: "Ítem preliminar A.1: ¿Cuál relación resume mejor el enfoque inicial de PLANNE?",
                 options: [
-                  { label: "Respuesta correcta de ejemplo", correct: true },
-                  { label: "Respuesta alternativa de ejemplo", correct: false },
-                  { label: "Respuesta distractora de ejemplo", correct: false }
+                  { label: "La neuroeducación ofrece criterios para comprender aprendizaje, motivación y toma de decisiones en la gestión directiva.", correct: true },
+                  { label: "La neuroeducación sustituye la experiencia profesional del gestor educativo.", correct: false },
+                  { label: "La gestión directiva depende solo del cumplimiento administrativo.", correct: false }
                 ]
               },
               {
-                text: "Pregunta placeholder A.2",
+                text: "Ítem preliminar A.2: En una gestión directiva con enfoque neuroeducativo, la neuroplasticidad invita a:",
                 options: [
-                  { label: "Opción distractora", correct: false },
-                  { label: "Opción correcta de ejemplo", correct: true },
-                  { label: "Opción alternativa", correct: false }
+                  { label: "Reconocer que las prácticas institucionales pueden aprenderse, ajustarse y mejorar con acompañamiento.", correct: true },
+                  { label: "Evitar cambios porque las conductas institucionales son fijas.", correct: false },
+                  { label: "Centrar la mejora únicamente en resultados numéricos.", correct: false }
                 ]
               }
             ]
@@ -114,32 +124,34 @@
         },
         {
           id: "B",
-          title: "Título placeholder B",
-          description: "Descripción placeholder para la segunda subetapa de la ruta.",
-          fullDescription: "Descripción completa placeholder para la subetapa B. Este espacio servirá para explicar el contenido, orientar el trabajo y conectar la actividad con la etapa anterior.",
-          intro: "Introducción placeholder de la etapa B. Usar este espacio para contextualizar el avance y recordar lo aprendido en la etapa anterior.",
+          title: "Neuroliderazgo, motivación y autorregulación",
+          description: "Aborda el papel del neuroliderazgo en la motivación intrínseca, la autorregulación y la toma de decisiones.",
+          fullDescription: "Esta etapa analiza cómo los procesos cerebrales vinculados con la motivación, la regulación emocional y la toma de decisiones pueden fortalecer el liderazgo educativo. Se orienta a reconocer prácticas directivas que favorecen climas institucionales más positivos y estratégicos.",
+          intro: "Introducción al neuroliderazgo como enfoque para comprender la conducta, la motivación y la respuesta emocional de los equipos institucionales.",
           materials: [
-            "Material placeholder B.1",
-            "Material placeholder B.2",
-            "Material placeholder B.3"
+            "Recurso sobre neuroliderazgo educativo",
+            "Caso de gestión directiva y autorregulación",
+            "Guía breve para reflexión personal"
           ],
-          activity: "Actividad placeholder para la etapa B. Aquí se ubicará una tarea breve o una aplicación guiada del contenido.",
+          resourceTitle: "Lectura base y caso aplicado",
+          resourceDescription: "Espacio para integrar una lectura sobre neuroliderazgo y un caso breve de gestión directiva centrado en motivación, autorregulación y comunicación estratégica.",
+          activity: "Caso aplicado: analice una situación de tensión institucional e identifique estrategias de autorregulación, escucha activa y toma de decisiones orientada al aprendizaje colectivo.",
           quiz: {
             questions: [
               {
-                text: "Pregunta placeholder B.1",
+                text: "Ítem preliminar B.1: ¿Qué práctica refleja mejor el neuroliderazgo en la gestión educativa?",
                 options: [
-                  { label: "Respuesta correcta de ejemplo", correct: true },
-                  { label: "Respuesta alternativa de ejemplo", correct: false },
-                  { label: "Respuesta distractora de ejemplo", correct: false }
+                  { label: "Promover condiciones de confianza, motivación y autorregulación para tomar mejores decisiones.", correct: true },
+                  { label: "Aumentar la presión sobre el equipo para acelerar resultados.", correct: false },
+                  { label: "Delegar toda decisión emocional al personal docente.", correct: false }
                 ]
               },
               {
-                text: "Pregunta placeholder B.2",
+                text: "Ítem preliminar B.2: La autorregulación directiva es importante porque:",
                 options: [
-                  { label: "Opción distractora", correct: false },
-                  { label: "Opción correcta de ejemplo", correct: true },
-                  { label: "Opción alternativa", correct: false }
+                  { label: "Ayuda a responder con claridad ante conflictos, incertidumbre o sobrecarga institucional.", correct: true },
+                  { label: "Elimina la necesidad de planificar acciones de seguimiento.", correct: false },
+                  { label: "Permite evitar conversaciones difíciles con el equipo.", correct: false }
                 ]
               }
             ]
@@ -147,32 +159,34 @@
         },
         {
           id: "C",
-          title: "Título placeholder C",
-          description: "Descripción placeholder para la tercera subetapa de la ruta.",
-          fullDescription: "Descripción completa placeholder para la subetapa C. Aquí se podrán detallar los materiales, las actividades sugeridas y el resultado esperado de aprendizaje.",
-          intro: "Introducción placeholder de la etapa C. Usar este espacio para explicar la conexión entre teoría, materiales y práctica.",
+          title: "Modelo SCARF aplicado a la gestión educativa",
+          description: "Explora los dominios de estatus, certeza, autonomía, relación y equidad como claves para comprender la respuesta de los equipos institucionales.",
+          fullDescription: "Esta etapa trabaja el modelo SCARF como herramienta para interpretar situaciones de gestión directiva. Permite analizar cómo ciertas decisiones pueden activar o amenazar la disposición de docentes y equipos institucionales hacia el aprendizaje, la colaboración y el cambio.",
+          intro: "Introducción al modelo SCARF como una guía para leer necesidades sociales y emocionales presentes en procesos de cambio institucional.",
           materials: [
-            "Material placeholder C.1",
-            "Material placeholder C.2",
-            "Material placeholder C.3"
+            "Ficha explicativa del modelo SCARF",
+            "Situación simulada de gestión institucional",
+            "Guía de análisis para toma de decisiones"
           ],
-          activity: "Actividad placeholder para la etapa C. Aquí se podrá colocar un caso, análisis o producción del estudiante.",
+          resourceTitle: "Análisis del modelo SCARF",
+          resourceDescription: "Espacio para desarrollar los dominios de estatus, certeza, autonomía, relación y equidad mediante una ficha de lectura y una situación directiva simulada.",
+          activity: "Simulación de situación directiva: revise una decisión institucional y determine qué dominios SCARF pueden verse fortalecidos o amenazados.",
           quiz: {
             questions: [
               {
-                text: "Pregunta placeholder C.1",
+                text: "Ítem preliminar C.1: ¿Para qué sirve el modelo SCARF en la gestión educativa?",
                 options: [
-                  { label: "Respuesta correcta de ejemplo", correct: true },
-                  { label: "Respuesta alternativa de ejemplo", correct: false },
-                  { label: "Respuesta distractora de ejemplo", correct: false }
+                  { label: "Para analizar cómo las decisiones directivas pueden influir en confianza, colaboración y apertura al cambio.", correct: true },
+                  { label: "Para clasificar docentes según rendimiento individual.", correct: false },
+                  { label: "Para reemplazar los procesos de evaluación institucional.", correct: false }
                 ]
               },
               {
-                text: "Pregunta placeholder C.2",
+                text: "Ítem preliminar C.2: Si una decisión reduce la claridad del equipo sobre los próximos pasos, el dominio más afectado es:",
                 options: [
-                  { label: "Opción distractora", correct: false },
-                  { label: "Opción correcta de ejemplo", correct: true },
-                  { label: "Opción alternativa", correct: false }
+                  { label: "Certeza", correct: true },
+                  { label: "Estatus", correct: false },
+                  { label: "Relación", correct: false }
                 ]
               }
             ]
@@ -180,32 +194,34 @@
         },
         {
           id: "D",
-          title: "Título placeholder D",
-          description: "Descripción placeholder para la cuarta subetapa de la ruta.",
-          fullDescription: "Descripción completa placeholder para la subetapa D. Este bloque podrá cerrar la ruta con síntesis, aplicación y evaluación final de los aprendizajes.",
-          intro: "Introducción placeholder de la etapa D. Usar este espacio para orientar el cierre de la ruta y preparar la evaluación.",
+          title: "Comunidad, evidencia y mejora institucional",
+          description: "Integra lo aprendido mediante una reflexión aplicada sobre buenas prácticas, evidencia institucional y mejora continua.",
+          fullDescription: "Esta etapa conecta la formación individual con la transformación institucional. Se orienta a documentar aprendizajes, reconocer buenas prácticas neuroeducativas y proyectar acciones de mejora desde la experiencia del gestor educativo.",
+          intro: "Introducción al cierre de la ruta RFAN mediante la sistematización de aprendizajes y la proyección de acciones para la mejora institucional.",
           materials: [
-            "Material placeholder D.1",
-            "Material placeholder D.2",
-            "Material placeholder D.3"
+            "Guía para documentar buenas prácticas",
+            "Plantilla de reflexión institucional",
+            "Recurso sobre mejora continua e investigación-acción"
           ],
-          activity: "Actividad placeholder para la etapa D. Aquí se planteará una integración final o evidencia de aprendizaje.",
+          resourceTitle: "Actividad aplicada y síntesis",
+          resourceDescription: "Espacio para integrar una plantilla de reflexión institucional, evidencias de aprendizaje y recursos sobre mejora continua desde la investigación-acción.",
+          activity: "Síntesis de aprendizajes: documente una buena práctica neuroeducativa aplicable a su institución y proponga una acción concreta de mejora directiva.",
           quiz: {
             questions: [
               {
-                text: "Pregunta placeholder D.1",
+                text: "Ítem preliminar D.1: ¿Qué caracteriza una buena práctica institucional dentro de PLANNE?",
                 options: [
-                  { label: "Respuesta correcta de ejemplo", correct: true },
-                  { label: "Respuesta alternativa de ejemplo", correct: false },
-                  { label: "Respuesta distractora de ejemplo", correct: false }
+                  { label: "Una acción documentada, reflexiva y transferible que aporta a la mejora de la gestión educativa.", correct: true },
+                  { label: "Una actividad aislada que no requiere evidencia ni seguimiento.", correct: false },
+                  { label: "Una decisión que solo responde a una urgencia administrativa.", correct: false }
                 ]
               },
               {
-                text: "Pregunta placeholder D.2",
+                text: "Ítem preliminar D.2: La comunidad de práctica aporta a la mejora institucional porque:",
                 options: [
-                  { label: "Opción distractora", correct: false },
-                  { label: "Opción correcta de ejemplo", correct: true },
-                  { label: "Opción alternativa", correct: false }
+                  { label: "Permite compartir aprendizajes, contrastar experiencias y construir evidencia colectiva.", correct: true },
+                  { label: "Sustituye la reflexión individual del gestor educativo.", correct: false },
+                  { label: "Convierte todas las instituciones en contextos idénticos.", correct: false }
                 ]
               }
             ]
@@ -214,7 +230,12 @@
       ]
     },
     forum: {
-      notice: "Aviso: este foro usa Supabase para mostrar publicaciones generales de usuarios autenticados."
-    }
+      title: "Comunidad de práctica COPEI",
+      description: "Comparta una reflexión, aprendizaje o buena práctica relacionada con la aplicación de la neuroeducación y el neuroliderazgo en la gestión directiva.",
+      notice: "Módulo 3 - Comunidad de Práctica y Evidencia Institucional (COPEI): espacio colaborativo para compartir reflexiones, aprendizajes y buenas prácticas vinculadas con la neuroeducación y la gestión directiva.",
+      commentPrompt: "Escriba aquí su reflexión o buena práctica institucional...",
+      buttonLabel: "Publicar aporte"
+    },
+    impact: "PLANNE busca aportar académica, institucional y socialmente mediante la generación de datos sobre competencias neuroeducativas directivas, el acompañamiento escalable de gestores educativos y el fortalecimiento de culturas pedagógicas más humanas, científicas y contextualizadas."
   };
 })();
