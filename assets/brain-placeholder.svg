@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 620" role="img" aria-labelledby="title desc">
+  <title id="title">Placeholder de cerebro</title>
+  <desc id="desc">Ilustracion temporal de un cerebro para reemplazar en el prototipo.</desc>
+  <defs>
+    <linearGradient id="brainFill" x1="120" x2="770" y1="120" y2="520" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff8ef"/>
+      <stop offset="0.52" stop-color="#d9f0ec"/>
+      <stop offset="1" stop-color="#dceaf7"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="22" stdDeviation="22" flood-color="#1f2d34" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
+  <rect width="900" height="620" rx="38" fill="#f7faf9"/>
+  <path d="M151 396c-49-33-72-90-57-146 15-58 65-99 122-102 20-58 74-98 138-98 42 0 82 18 110 49 30-26 69-41 111-39 73 4 133 58 145 129 47 21 79 68 79 122 0 68-51 125-117 133-25 67-89 114-164 114-49 0-94-20-126-52-32 27-73 43-119 43-66 0-124-35-155-88-28-6-53-18-67-65z" fill="url(#brainFill)" filter="url(#softShadow)"/>
+  <path d="M221 214c46-28 108-15 139 28 29-29 77-33 111-10 38-42 105-40 141 6 35-2 68 17 84 48" fill="none" stroke="#315f8a" stroke-width="12" stroke-linecap="round"/>
+  <path d="M164 325c28-38 78-54 123-38 12-38 46-64 86-65 38-1 73 21 89 55 28-18 66-19 96 0 31 19 47 54 41 89 37 4 69 30 80 66" fill="none" stroke="#2c7667" stroke-width="12" stroke-linecap="round"/>
+  <path d="M268 467c26-35 73-48 113-31 27 12 47 35 55 63 26-29 70-38 106-20 16 8 29 19 39 34" fill="none" stroke="#b86b4b" stroke-width="12" stroke-linecap="round"/>
+  <path d="M430 123c33 38 44 91 28 138M515 139c-21 35-22 78-3 114M372 308c36 21 56 61 51 102M548 314c-31 24-47 62-41 101" fill="none" stroke="#88a8a3" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="224" cy="214" r="11" fill="#315f8a"/>
+  <circle cx="695" cy="286" r="11" fill="#315f8a"/>
+  <circle cx="164" cy="325" r="11" fill="#2c7667"/>
+  <circle cx="679" cy="432" r="11" fill="#2c7667"/>
+  <circle cx="268" cy="467" r="11" fill="#b86b4b"/>
+  <circle cx="581" cy="513" r="11" fill="#b86b4b"/>
+</svg>

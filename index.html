@@ -2,81 +2,117 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Prototipo Neuroeducación</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prototipo educativo de tesis</title>
   <link rel="stylesheet" href="style.css">
+  <script src="data.js" defer></script>
+  <script src="storage.js" defer></script>
+  <script src="app.js" defer></script>
 </head>
 <body>
+  <header class="hero">
+    <nav class="topbar" aria-label="Navegación principal">
+      <a class="brand" href="#inicio" aria-label="Ir al inicio">
+        <span class="brand-mark" aria-hidden="true">N</span>
+        <span>
+          <strong>Neuroaprendizaje</strong>
+          <small>Prototipo de tesis</small>
+        </span>
+      </a>
 
-  <header>
-    <h1>Prototipo de curso interactivo</h1>
-    <p>Neurociencia aplicada a la educación</p>
+      <!-- Luego esta acción se conectará con Supabase Auth. -->
+      <button class="auth-placeholder" type="button">
+        Iniciar sesión / Registrarse
+        <span>Próximamente</span>
+      </button>
+    </nav>
+
+    <section class="hero-grid" id="inicio">
+      <div class="hero-copy">
+        <p class="eyebrow" id="heroKicker"></p>
+        <h1 id="heroTitle"></h1>
+        <p id="heroSubtitle"></p>
+      </div>
+
+      <figure class="brain-figure">
+        <img id="brainImage" src="assets/cerebro.png" alt="Ilustración temporal de un cerebro">
+        <figcaption>Imagen temporal reemplazable desde <code>data.js</code>.</figcaption>
+      </figure>
+    </section>
+
+    <section class="info-area" aria-label="Cajitas informativas editables">
+      <div class="section-heading">
+        <p class="eyebrow">Textos editables</p>
+        <h2>Cajitas superiores</h2>
+      </div>
+      <div class="info-grid" id="infoCards"></div>
+    </section>
   </header>
 
-  <main>
-    <section>
-      <h2>Módulo 1: Atención y memoria</h2>
-      <p>
-        En este módulo se explica cómo la atención influye en la memoria
-        y en el aprendizaje. Primero revisarás una explicación breve,
-        luego realizarás una actividad y finalmente responderás un cuestionario.
-      </p>
+  <main class="page-shell">
+    <section class="module-block" id="diagnostico" aria-labelledby="diagnosisTitle">
+      <div class="module-heading">
+        <p class="module-number">Módulo 1</p>
+        <h2 id="diagnosisTitle">Diagnóstico</h2>
+        <p id="diagnosisDescription"></p>
+      </div>
+
+      <div class="diagnosis-layout">
+        <div>
+          <h3>Preguntas de ejemplo</h3>
+          <ul class="question-list" id="diagnosisQuestionList"></ul>
+        </div>
+
+        <div class="action-panel">
+          <button class="primary-button" id="startDiagnosisButton" type="button">Iniciar diagnóstico</button>
+          <p class="helper-text">El resultado se guarda solo en este navegador.</p>
+          <div class="result-box" id="diagnosisSavedResult" hidden></div>
+        </div>
+      </div>
+
+      <form class="inline-form" id="diagnosisForm" hidden></form>
     </section>
 
-    <section>
-      <h2>1. Contenido del módulo</h2>
-      <p>
-        La atención permite seleccionar información relevante del entorno.
-        En contextos educativos, mantener la atención facilita que la información
-        pase a procesos de memoria y pueda ser recuperada posteriormente.
-      </p>
+    <section class="module-block" id="ruta" aria-labelledby="learningTitle">
+      <div class="module-heading">
+        <p class="module-number">Módulo 2</p>
+        <h2 id="learningTitle">Ruta de aprendizaje</h2>
+        <p id="learningDescription"></p>
+        <p class="score-note" id="minimumScoreNote"></p>
+      </div>
 
-      <h3>Ejemplo</h3>
-      <p>
-        Si un estudiante recibe demasiada información al mismo tiempo,
-        puede atender aspectos secundarios y perder la idea principal.
-        Por eso, dividir el contenido en partes pequeñas puede favorecer
-        la comprensión.
-      </p>
+      <div class="stage-grid" id="stageGrid"></div>
     </section>
 
-    <section>
-      <h2>2. Actividad breve</h2>
-      <p>
-        Lee el siguiente caso:
-      </p>
+    <section class="module-block forum-block" id="foro" aria-labelledby="forumTitle">
+      <div class="module-heading">
+        <p class="module-number">Módulo 3</p>
+        <h2 id="forumTitle">Foro</h2>
+        <p>Espacio inicial para registrar aportes visibles durante la revisión del prototipo.</p>
+      </div>
 
-      <blockquote>
-        Un docente explica un tema nuevo durante 40 minutos sin pausas,
-        sin preguntas intermedias y sin ejemplos. Al final, aplica una prueba corta.
-      </blockquote>
+      <div class="notice" id="forumNotice"></div>
 
-      <p>
-        Reflexiona: ¿qué podría modificarse para favorecer la atención del estudiante?
-      </p>
-    </section>
+      <form class="forum-form" id="forumForm">
+        <label>
+          Nombre visible
+          <input id="forumName" name="name" type="text" maxlength="60" placeholder="Ejemplo: Estudiante 01" required>
+        </label>
 
-    <section>
-      <h2>3. Cuestionario</h2>
-      <p>
-        Responde el siguiente cuestionario para finalizar el módulo.
-      </p>
+        <label>
+          Comentario
+          <textarea id="forumComment" name="comment" rows="4" maxlength="600" placeholder="Escribe un comentario de ejemplo..." required></textarea>
+        </label>
 
-      <!-- Aquí se inserta el Google Form -->
-      <iframe 
-        src="AQUI_VA_EL_ENLACE_EMBEBIDO_DEL_FORMULARIO"
-        width="100%" 
-        height="900" 
-        frameborder="0" 
-        marginheight="0" 
-        marginwidth="0">
-        Cargando…
-      </iframe>
+        <button class="primary-button" type="submit">Publicar comentario</button>
+      </form>
+
+      <div class="comment-list" id="commentList" aria-live="polite"></div>
     </section>
   </main>
 
-  <footer>
-    <p>Prototipo académico - Neuroeducación</p>
+  <footer class="site-footer">
+    <p>Prototipo académico - versión visual y funcional sin autenticación real.</p>
   </footer>
-
 </body>
 </html>
