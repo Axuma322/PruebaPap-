@@ -218,8 +218,22 @@
     var unlockedStages = ["A"];
     var completedStages = progressRow.completed_stages.slice();
 
+    Object.keys(appState.quizAttemptsByStage || {}).forEach(function (stageId) {
+      var attempt = appState.quizAttemptsByStage[stageId];
+
+      if (attempt && attempt.passed === true) {
+        addUnique(completedStages, stageId);
+      }
+    });
+
     completedStages.forEach(function (stageId) {
       addUnique(unlockedStages, stageId);
+
+      var nextStageId = getNextStageId(stageId);
+
+      if (nextStageId) {
+        addUnique(unlockedStages, nextStageId);
+      }
     });
 
     if (progressRow.current_stage) {
@@ -248,13 +262,12 @@
     );
   }
 
-  function getStageAttempt(stageId) {
-    return appState.quizAttemptsByStage[stageId] || null;
-  }
-
   function isStageCompleted(stageId, progress) {
     var currentProgress = progress || getLearningProgressForRender();
-    return currentProgress.completedStages.includes(stageId);
+    var approvedAttempt = appState.quizAttemptsByStage[stageId];
+
+    return currentProgress.completedStages.includes(stageId)
+      || Boolean(approvedAttempt && approvedAttempt.passed === true);
   }
 
   async function saveRemoteProgress(fields) {
@@ -337,11 +350,17 @@
     appState.quizAttemptsByStage = {};
 
     (response.data || []).forEach(function (attempt) {
-      if (attempt.stage_key && appState.quizScores[attempt.stage_key] === undefined) {
+      var existingAttempt = appState.quizAttemptsByStage[attempt.stage_key];
+
+      if (!attempt.stage_key) {
+        return;
+      }
+
+      if (appState.quizScores[attempt.stage_key] === undefined && attempt.passed === true) {
         appState.quizScores[attempt.stage_key] = attempt.score;
       }
 
-      if (attempt.stage_key && !appState.quizAttemptsByStage[attempt.stage_key]) {
+      if (!existingAttempt || attempt.passed === true) {
         appState.quizAttemptsByStage[attempt.stage_key] = attempt;
       }
     });
@@ -1214,11 +1233,6 @@
         "Esta etapa ya fue completada",
         "La mini evaluación de esta etapa ya fue registrada."
       ));
-    } else if (getStageAttempt(stage.id)) {
-      evaluationSection.appendChild(buildFeedbackBox(
-        "Esta respuesta ya fue registrada",
-        "Ya existe un intento de mini evaluación para esta etapa."
-      ));
     } else {
       evaluationSection.appendChild(buildStageQuizForm(stage));
     }
@@ -1272,16 +1286,6 @@
       return;
     }
 
-    if (getStageAttempt(stage.id)) {
-      latestStageFeedback = {
-        stageId: stage.id,
-        title: "Esta respuesta ya fue registrada",
-        message: "Ya existe un intento de mini evaluación para esta etapa."
-      };
-      renderLearningPath();
-      return;
-    }
-
     appState.savingQuizStages[stage.id] = true;
 
     if (submitButton) {
@@ -1322,13 +1326,35 @@
       createdAt: new Date().toISOString()
     };
 
+    if (!passed) {
+      latestStageFeedback = {
+        stageId: stage.id,
+        title: "Mini evaluación pendiente",
+        message: "No alcanzaste la nota mínima. Revisa el material e inténtalo de nuevo."
+      };
+      setSyncNotice("");
+      appState.savingQuizStages[stage.id] = false;
+
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = originalButtonText;
+      }
+
+      if (form.reset) {
+        form.reset();
+      }
+
+      renderLearningPath();
+      return;
+    }
+
     try {
       var attemptResponse = await supabaseClient.from("quiz_attempts").insert({
         user_id: appState.user.id,
         stage_key: stage.id,
         answers: selectedAnswers,
         score: score,
-        passed: passed
+        passed: true
       });
 
       if (attemptResponse.error) {
@@ -1341,15 +1367,15 @@
         try {
           await loadQuizAttempts();
         } catch (syncError) {
-          setSyncNotice("Esta respuesta ya fue registrada, pero no se pudo refrescar la lista de intentos.");
+          setSyncNotice("Esta etapa ya fue completada, pero no se pudo refrescar la lista de intentos.");
         }
 
         latestStageFeedback = {
           stageId: stage.id,
-          title: "Esta respuesta ya fue registrada",
-          message: "Ya existe un intento de mini evaluación para esta etapa."
+          title: "Esta etapa ya fue completada",
+          message: "La mini evaluación de esta etapa ya fue registrada."
         };
-        setSyncNotice("Esta respuesta ya fue registrada.");
+        setSyncNotice("Esta etapa ya fue completada.");
         renderLearningPath();
         return;
       }
@@ -1368,37 +1394,27 @@
     progress.scores[stage.id] = score;
     storage.addEvaluationAttempt(attempt);
 
-    if (passed) {
-      addUnique(progress.completedStages, stage.id);
+    addUnique(progress.completedStages, stage.id);
 
-      if (nextStageId) {
-        addUnique(progress.unlockedStages, nextStageId);
-      }
-
-      latestStageFeedback = {
-        stageId: stage.id,
-        title: "Mini evaluación aprobada",
-        message: nextStageId
-          ? "Obtuviste " + score + "%. Se desbloqueó la etapa " + nextStageId + "."
-          : "Obtuviste " + score + "%. Ruta completada."
-      };
-    } else {
-      latestStageFeedback = {
-        stageId: stage.id,
-        title: "Mini evaluación pendiente",
-        message: "Obtuviste " + score + "%. La nota mínima configurada es " + minimumScore + "%."
-      };
+    if (nextStageId) {
+      addUnique(progress.unlockedStages, nextStageId);
     }
+
+    latestStageFeedback = {
+      stageId: stage.id,
+      title: "Mini evaluación aprobada",
+      message: nextStageId
+        ? "Obtuviste " + score + "%. Se desbloqueó la etapa " + nextStageId + "."
+        : "Obtuviste " + score + "%. Ruta completada."
+    };
 
     storage.saveLearningProgress(progress);
 
     try {
-      if (passed) {
-        await saveRemoteProgress({
-          current_stage: nextStageId || stage.id,
-          completed_stages: progress.completedStages
-        });
-      }
+      await saveRemoteProgress({
+        current_stage: nextStageId || stage.id,
+        completed_stages: progress.completedStages
+      });
 
       setSyncNotice("");
     } catch (error) {
