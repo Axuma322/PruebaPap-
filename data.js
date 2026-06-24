@@ -9,7 +9,7 @@
     hero: {
       kicker: "Vitrina funcional",
       title: "Página educativa para tesis",
-      subtitle: "Primera versión visual para organizar diagnóstico, ruta de aprendizaje y foro académico antes de conectar autenticación o base de datos real."
+      subtitle: "Primera versión visual con Supabase Auth para organizar diagnóstico, ruta de aprendizaje y foro académico antes de migrar los datos educativos a la base de datos real."
     },
     infoBoxes: [
       {

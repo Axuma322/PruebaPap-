@@ -3,6 +3,7 @@
 
   var PREFIX = "tesis-neuroeducacion:";
   var RESET_KEYS = [
+    // Claves heredadas de la pantalla de acceso demo anterior.
     "demo-session",
     "demo-participant",
     "diagnosis-result",
@@ -86,60 +87,9 @@
   }
 
   window.appStorage = {
-    getDemoSession: function () {
-      return read("demo-session", null);
-    },
-
-    getDemoParticipant: function () {
-      return read("demo-participant", null);
-    },
-
-    getActiveDemoUser: function () {
-      var session = this.getDemoSession();
-      var participant = this.getDemoParticipant();
-
-      if (!session || !session.active) {
-        return null;
-      }
-
-      return {
-        participantCode: session.participantCode,
-        visibleName: participant && participant.participantCode === session.participantCode
-          ? participant.visibleName
-          : "",
-        accessedAt: session.accessedAt
-      };
-    },
-
-    // Demo temporal: luego se reemplazará por Supabase Auth.
-    // Nunca guarda contraseña ni valida contraseña contra localStorage.
-    createDemoAccount: function (participant) {
-      var now = new Date().toISOString();
-
-      write("demo-participant", {
-        participantCode: participant.participantCode,
-        visibleName: participant.visibleName
-      });
-
-      return write("demo-session", {
-        active: true,
-        participantCode: participant.participantCode,
-        accessedAt: now
-      });
-    },
-
-    // Demo temporal: permite entrada visual usando solo el código de participante.
-    // Supabase Auth reemplazará esta lógica más adelante.
-    startDemoSession: function (participantCode) {
-      return write("demo-session", {
-        active: true,
-        participantCode: participantCode,
-        accessedAt: new Date().toISOString()
-      });
-    },
-
-    clearDemoSession: function () {
-      return remove("demo-session");
+    clearLegacyAccessData: function () {
+      remove("demo-session");
+      return remove("demo-participant");
     },
 
     getDiagnosisResult: function () {
@@ -147,6 +97,7 @@
     },
 
     saveDiagnosisResult: function (result) {
+      // Temporal: luego migrar estos resultados a la tabla diagnostic_answers.
       return write("diagnosis-result", result);
     },
 
@@ -156,6 +107,7 @@
     },
 
     saveLearningProgress: function (progress) {
+      // Temporal: esta vista usa progreso local; luego sincronizar con la tabla progress.
       return write("learning-progress", progress);
     },
 
@@ -168,15 +120,24 @@
     },
 
     addForumComment: function (comment) {
+      // Temporal: luego reemplazar por inserciones reales en la tabla forum_posts.
       var comments = this.getForumComments();
       comments.unshift(comment);
       this.saveForumComments(comments);
       return comments;
     },
 
-    // Herramienta temporal de desarrollo: limpia sesión demo y datos de prueba locales.
+    // Herramienta temporal de desarrollo: limpia localStorage del prototipo.
     clearTestData: function () {
-      RESET_KEYS.forEach(remove);
+      try {
+        if (localStorageAvailable) {
+          window.localStorage.clear();
+        }
+      } catch (error) {
+        RESET_KEYS.forEach(remove);
+      }
+
+      memoryStore = {};
     }
   };
 })();

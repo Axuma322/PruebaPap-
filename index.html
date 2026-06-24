@@ -5,15 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Prototipo educativo de tesis</title>
   <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="data.js" defer></script>
   <script src="storage.js" defer></script>
+  <script src="supabaseClient.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 <body class="auth-pending">
   <section class="access-screen" id="accessScreen" aria-labelledby="accessTitle" hidden>
     <div class="access-card">
       <div class="access-heading">
-        <p class="eyebrow">Acceso demo</p>
+        <p class="eyebrow">Acceso a plataforma</p>
         <h1 id="accessTitle">Neuroaprendizaje</h1>
       </div>
 
@@ -22,7 +24,7 @@
         <button class="access-tab" id="loginTab" type="button" role="tab" aria-selected="false" aria-controls="loginForm">Iniciar sesión</button>
       </div>
 
-      <!-- Demo temporal: estos formularios se reemplazarán por Supabase Auth. -->
+      <!-- Supabase Auth: estos formularios usan correo técnico generado desde el código de participante. -->
       <form class="access-form" id="registerForm" role="tabpanel" aria-labelledby="registerTab">
         <label>
           Código de participante
@@ -41,7 +43,7 @@
           <input id="registerPasswordConfirm" name="passwordConfirm" type="password" autocomplete="new-password" required>
         </label>
         <p class="access-message" id="registerMessage" aria-live="polite"></p>
-        <button class="primary-button" type="submit">Crear cuenta demo</button>
+        <button class="primary-button" type="submit">Crear cuenta</button>
       </form>
 
       <form class="access-form" id="loginForm" role="tabpanel" aria-labelledby="loginTab" hidden>
@@ -54,7 +56,7 @@
           <input id="loginPassword" name="password" type="password" autocomplete="current-password" required>
         </label>
         <p class="access-message" id="loginMessage" aria-live="polite"></p>
-        <button class="primary-button" type="submit">Entrar demo</button>
+        <button class="primary-button" type="submit">Entrar</button>
       </form>
 
       <button class="dev-reset-button" data-reset-test type="button">Reiniciar progreso de prueba</button>
@@ -70,10 +72,10 @@
         </span>
       </a>
 
-      <!-- Demo temporal: luego esta zona se conectará con Supabase Auth. -->
+      <!-- Supabase Auth: muestra el perfil cargado desde profiles. -->
       <div class="session-widget" id="sessionWidget" hidden>
         <span id="sessionLabel"></span>
-        <button class="ghost-button" id="logoutDemoButton" type="button">Cerrar sesión demo</button>
+        <button class="ghost-button" id="logoutButton" type="button">Cerrar sesión</button>
       </div>
     </nav>
 
@@ -159,7 +161,7 @@
   </main>
 
   <footer class="site-footer">
-    <p>Prototipo académico - versión visual y funcional sin autenticación real.</p>
+    <p>Prototipo académico - versión visual con Supabase Auth y datos educativos temporales.</p>
     <!-- Herramienta temporal de desarrollo para pruebas locales. No es una función final de producción. -->
     <button class="dev-reset-button" id="resetTestDataButton" data-reset-test type="button">Reiniciar progreso de prueba</button>
   </footer>
