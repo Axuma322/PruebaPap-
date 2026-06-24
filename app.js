@@ -40,6 +40,149 @@
     }
   }
 
+  function getDemoDisplayName(user) {
+    if (!user) {
+      return "";
+    }
+
+    return user.visibleName || user.participantCode;
+  }
+
+  function clearAccessMessages() {
+    byId("registerMessage").textContent = "";
+    byId("loginMessage").textContent = "";
+  }
+
+  function setAccessMode(mode) {
+    var isRegister = mode === "register";
+
+    byId("registerForm").hidden = !isRegister;
+    byId("loginForm").hidden = isRegister;
+    byId("registerTab").classList.toggle("is-active", isRegister);
+    byId("loginTab").classList.toggle("is-active", !isRegister);
+    byId("registerTab").setAttribute("aria-selected", String(isRegister));
+    byId("loginTab").setAttribute("aria-selected", String(!isRegister));
+    clearAccessMessages();
+  }
+
+  function updateSessionWidget(user) {
+    var widget = byId("sessionWidget");
+    var label = byId("sessionLabel");
+
+    if (!user) {
+      widget.hidden = true;
+      label.textContent = "";
+      return;
+    }
+
+    label.textContent = "Sesión demo: " + getDemoDisplayName(user);
+    widget.hidden = false;
+  }
+
+  function updateForumIdentity() {
+    var identity = byId("forumIdentity");
+    var user = storage.getActiveDemoUser();
+
+    if (!identity) {
+      return;
+    }
+
+    identity.textContent = "Publicando como: " + (getDemoDisplayName(user) || "Participante demo");
+  }
+
+  function applySessionState() {
+    var user = storage.getActiveDemoUser();
+    var accessScreen = byId("accessScreen");
+
+    document.body.classList.remove("auth-pending");
+
+    if (!user) {
+      accessScreen.hidden = false;
+      document.body.classList.add("access-required");
+      document.body.classList.remove("stage-page-active");
+      updateSessionWidget(null);
+      return;
+    }
+
+    accessScreen.hidden = true;
+    document.body.classList.remove("access-required");
+    updateSessionWidget(user);
+    updateForumIdentity();
+    renderLearningPath();
+  }
+
+  function handleRegisterSubmit(event) {
+    event.preventDefault();
+
+    var form = event.currentTarget;
+    var participantCode = form.elements.participantCode.value.trim();
+    var visibleName = form.elements.visibleName.value.trim();
+    var password = form.elements.password.value;
+    var passwordConfirm = form.elements.passwordConfirm.value;
+
+    if (!participantCode || !visibleName || !password || !passwordConfirm) {
+      byId("registerMessage").textContent = "Completa todos los campos para continuar.";
+      return;
+    }
+
+    if (password !== passwordConfirm) {
+      byId("registerMessage").textContent = "Las contraseñas no coinciden.";
+      return;
+    }
+
+    // Demo temporal: Supabase Auth reemplazará este flujo.
+    // No se guarda la contraseña ni se crea autenticación real en localStorage.
+    storage.createDemoAccount({
+      participantCode: participantCode,
+      visibleName: visibleName
+    });
+
+    form.reset();
+    applySessionState();
+  }
+
+  function handleLoginSubmit(event) {
+    event.preventDefault();
+
+    var form = event.currentTarget;
+    var participantCode = form.elements.participantCode.value.trim();
+    var password = form.elements.password.value;
+
+    if (!participantCode || !password) {
+      byId("loginMessage").textContent = "Completa los campos para entrar en modo demo.";
+      return;
+    }
+
+    // Demo temporal: no valida ni guarda contraseña. Supabase Auth lo reemplazará.
+    storage.startDemoSession(participantCode);
+    form.reset();
+    applySessionState();
+  }
+
+  function handleLogoutDemo() {
+    storage.clearDemoSession();
+
+    if (window.location.hash) {
+      window.location.hash = "";
+    }
+
+    applySessionState();
+  }
+
+  function setupAccessGate() {
+    byId("registerTab").addEventListener("click", function () {
+      setAccessMode("register");
+    });
+    byId("loginTab").addEventListener("click", function () {
+      setAccessMode("login");
+    });
+    byId("registerForm").addEventListener("submit", handleRegisterSubmit);
+    byId("loginForm").addEventListener("submit", handleLoginSubmit);
+    byId("logoutDemoButton").addEventListener("click", handleLogoutDemo);
+    setAccessMode("register");
+    applySessionState();
+  }
+
   function renderHero() {
     byId("heroKicker").textContent = data.hero.kicker;
     byId("heroTitle").textContent = data.hero.title;
@@ -389,6 +532,7 @@
     var materialSection = createElement("section", "stage-detail-section");
     var evaluationSection = createElement("section", "stage-detail-section");
     var feedback = buildFeedback(stage.id);
+    var activeUser = storage.getActiveDemoUser();
 
     backButton.type = "button";
     backButton.addEventListener("click", goToRouteMap);
@@ -418,6 +562,7 @@
     mainColumn.appendChild(evaluationSection);
 
     sideColumn.appendChild(createElement("strong", "", "Resumen de avance"));
+    sideColumn.appendChild(createElement("p", "", "Participante: " + (getDemoDisplayName(activeUser) || "Demo")));
     sideColumn.appendChild(createElement("p", "", "Nota mínima: " + data.settings.minimumScore + "%"));
     sideColumn.appendChild(createElement("p", "", "Estado actual: " + getStageStatus(stage, progress)));
 
@@ -586,10 +731,11 @@
     event.preventDefault();
 
     var form = event.currentTarget;
-    var name = form.elements.name.value.trim();
+    var user = storage.getActiveDemoUser();
+    var name = getDemoDisplayName(user) || "Participante demo";
     var comment = form.elements.comment.value.trim();
 
-    if (!name || !comment) {
+    if (!comment) {
       return;
     }
 
@@ -601,35 +747,39 @@
     });
 
     form.reset();
+    updateForumIdentity();
     renderForumComments();
   }
 
   function renderForum() {
     byId("forumNotice").textContent = data.forum.notice;
     byId("forumForm").addEventListener("submit", handleForumSubmit);
+    updateForumIdentity();
     renderForumComments();
   }
 
   function setupDevelopmentResetButton() {
-    var resetButton = byId("resetTestDataButton");
+    var resetButtons = document.querySelectorAll("[data-reset-test]");
 
-    if (!resetButton) {
+    if (!resetButtons.length) {
       return;
     }
 
     // Herramienta temporal de desarrollo para pruebas locales.
     // Retirar antes de convertir esta vitrina en una versión de producción.
-    resetButton.addEventListener("click", function () {
-      var confirmed = window.confirm(
-        "Esta herramienta temporal borrará diagnóstico, progreso y comentarios guardados en este navegador. ¿Deseas continuar?"
-      );
+    resetButtons.forEach(function (resetButton) {
+      resetButton.addEventListener("click", function () {
+        var confirmed = window.confirm(
+          "Esta herramienta temporal borrará sesión demo, datos de participante, diagnóstico, progreso y comentarios guardados en este navegador. ¿Deseas continuar?"
+        );
 
-      if (!confirmed) {
-        return;
-      }
+        if (!confirmed) {
+          return;
+        }
 
-      storage.clearTestData();
-      window.location.reload();
+        storage.clearTestData();
+        window.location.reload();
+      });
     });
   }
 
@@ -639,8 +789,13 @@
     renderDiagnosis();
     renderLearningPath();
     renderForum();
+    setupAccessGate();
     setupDevelopmentResetButton();
-    window.addEventListener("hashchange", renderLearningPath);
+    window.addEventListener("hashchange", function () {
+      if (storage.getActiveDemoUser()) {
+        renderLearningPath();
+      }
+    });
   }
 
   document.addEventListener("DOMContentLoaded", init);

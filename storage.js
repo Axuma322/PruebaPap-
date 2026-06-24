@@ -2,7 +2,13 @@
   "use strict";
 
   var PREFIX = "tesis-neuroeducacion:";
-  var TEST_DATA_KEYS = ["diagnosis-result", "learning-progress", "forum-comments"];
+  var RESET_KEYS = [
+    "demo-session",
+    "demo-participant",
+    "diagnosis-result",
+    "learning-progress",
+    "forum-comments"
+  ];
   var memoryStore = {};
 
   function hasLocalStorage() {
@@ -80,6 +86,62 @@
   }
 
   window.appStorage = {
+    getDemoSession: function () {
+      return read("demo-session", null);
+    },
+
+    getDemoParticipant: function () {
+      return read("demo-participant", null);
+    },
+
+    getActiveDemoUser: function () {
+      var session = this.getDemoSession();
+      var participant = this.getDemoParticipant();
+
+      if (!session || !session.active) {
+        return null;
+      }
+
+      return {
+        participantCode: session.participantCode,
+        visibleName: participant && participant.participantCode === session.participantCode
+          ? participant.visibleName
+          : "",
+        accessedAt: session.accessedAt
+      };
+    },
+
+    // Demo temporal: luego se reemplazará por Supabase Auth.
+    // Nunca guarda contraseña ni valida contraseña contra localStorage.
+    createDemoAccount: function (participant) {
+      var now = new Date().toISOString();
+
+      write("demo-participant", {
+        participantCode: participant.participantCode,
+        visibleName: participant.visibleName
+      });
+
+      return write("demo-session", {
+        active: true,
+        participantCode: participant.participantCode,
+        accessedAt: now
+      });
+    },
+
+    // Demo temporal: permite entrada visual usando solo el código de participante.
+    // Supabase Auth reemplazará esta lógica más adelante.
+    startDemoSession: function (participantCode) {
+      return write("demo-session", {
+        active: true,
+        participantCode: participantCode,
+        accessedAt: new Date().toISOString()
+      });
+    },
+
+    clearDemoSession: function () {
+      return remove("demo-session");
+    },
+
     getDiagnosisResult: function () {
       return read("diagnosis-result", null);
     },
@@ -112,9 +174,9 @@
       return comments;
     },
 
-    // Herramienta temporal de desarrollo: limpia solo datos de prueba locales.
+    // Herramienta temporal de desarrollo: limpia sesión demo y datos de prueba locales.
     clearTestData: function () {
-      TEST_DATA_KEYS.forEach(remove);
+      RESET_KEYS.forEach(remove);
     }
   };
 })();

@@ -9,7 +9,57 @@
   <script src="storage.js" defer></script>
   <script src="app.js" defer></script>
 </head>
-<body>
+<body class="auth-pending">
+  <section class="access-screen" id="accessScreen" aria-labelledby="accessTitle" hidden>
+    <div class="access-card">
+      <div class="access-heading">
+        <p class="eyebrow">Acceso demo</p>
+        <h1 id="accessTitle">Neuroaprendizaje</h1>
+      </div>
+
+      <div class="access-tabs" role="tablist" aria-label="Modo de acceso">
+        <button class="access-tab is-active" id="registerTab" type="button" role="tab" aria-selected="true" aria-controls="registerForm">Registrarse</button>
+        <button class="access-tab" id="loginTab" type="button" role="tab" aria-selected="false" aria-controls="loginForm">Iniciar sesión</button>
+      </div>
+
+      <!-- Demo temporal: estos formularios se reemplazarán por Supabase Auth. -->
+      <form class="access-form" id="registerForm" role="tabpanel" aria-labelledby="registerTab">
+        <label>
+          Código de participante
+          <input id="registerCode" name="participantCode" type="text" autocomplete="username" required>
+        </label>
+        <label>
+          Nombre visible
+          <input id="registerName" name="visibleName" type="text" maxlength="60" required>
+        </label>
+        <label>
+          Contraseña
+          <input id="registerPassword" name="password" type="password" autocomplete="new-password" required>
+        </label>
+        <label>
+          Confirmar contraseña
+          <input id="registerPasswordConfirm" name="passwordConfirm" type="password" autocomplete="new-password" required>
+        </label>
+        <p class="access-message" id="registerMessage" aria-live="polite"></p>
+        <button class="primary-button" type="submit">Crear cuenta demo</button>
+      </form>
+
+      <form class="access-form" id="loginForm" role="tabpanel" aria-labelledby="loginTab" hidden>
+        <label>
+          Código de participante
+          <input id="loginCode" name="participantCode" type="text" autocomplete="username" required>
+        </label>
+        <label>
+          Contraseña
+          <input id="loginPassword" name="password" type="password" autocomplete="current-password" required>
+        </label>
+        <p class="access-message" id="loginMessage" aria-live="polite"></p>
+        <button class="primary-button" type="submit">Entrar demo</button>
+      </form>
+
+      <button class="dev-reset-button" data-reset-test type="button">Reiniciar progreso de prueba</button>
+    </div>
+  </section>
   <header class="hero">
     <nav class="topbar" aria-label="Navegación principal">
       <a class="brand" href="#inicio" aria-label="Ir al inicio">
@@ -20,11 +70,11 @@
         </span>
       </a>
 
-      <!-- Luego esta acción se conectará con Supabase Auth. -->
-      <button class="auth-placeholder" type="button">
-        Iniciar sesión / Registrarse
-        <span>Próximamente</span>
-      </button>
+      <!-- Demo temporal: luego esta zona se conectará con Supabase Auth. -->
+      <div class="session-widget" id="sessionWidget" hidden>
+        <span id="sessionLabel"></span>
+        <button class="ghost-button" id="logoutDemoButton" type="button">Cerrar sesión demo</button>
+      </div>
     </nav>
 
     <section class="hero-grid" id="inicio">
@@ -94,10 +144,7 @@
       <div class="notice" id="forumNotice"></div>
 
       <form class="forum-form" id="forumForm">
-        <label>
-          Nombre visible
-          <input id="forumName" name="name" type="text" maxlength="60" placeholder="Ejemplo: Estudiante 01" required>
-        </label>
+        <p class="forum-identity" id="forumIdentity"></p>
 
         <label>
           Comentario
@@ -114,7 +161,7 @@
   <footer class="site-footer">
     <p>Prototipo académico - versión visual y funcional sin autenticación real.</p>
     <!-- Herramienta temporal de desarrollo para pruebas locales. No es una función final de producción. -->
-    <button class="dev-reset-button" id="resetTestDataButton" type="button">Reiniciar progreso de prueba</button>
+    <button class="dev-reset-button" id="resetTestDataButton" data-reset-test type="button">Reiniciar progreso de prueba</button>
   </footer>
 </body>
 </html>
