@@ -83,6 +83,7 @@
           id: "A",
           title: "Título placeholder A",
           description: "Descripción placeholder para la primera subetapa de la ruta.",
+          fullDescription: "Descripción completa placeholder para la subetapa A. Aquí se podrá ampliar el propósito, las instrucciones y los criterios de avance cuando el contenido final esté listo.",
           materials: [
             "Material placeholder A.1",
             "Material placeholder A.2",
@@ -113,6 +114,7 @@
           id: "B",
           title: "Título placeholder B",
           description: "Descripción placeholder para la segunda subetapa de la ruta.",
+          fullDescription: "Descripción completa placeholder para la subetapa B. Este espacio servirá para explicar el contenido, orientar el trabajo y conectar la actividad con la etapa anterior.",
           materials: [
             "Material placeholder B.1",
             "Material placeholder B.2",
@@ -143,6 +145,7 @@
           id: "C",
           title: "Título placeholder C",
           description: "Descripción placeholder para la tercera subetapa de la ruta.",
+          fullDescription: "Descripción completa placeholder para la subetapa C. Aquí se podrán detallar los materiales, las actividades sugeridas y el resultado esperado de aprendizaje.",
           materials: [
             "Material placeholder C.1",
             "Material placeholder C.2",
@@ -173,6 +176,7 @@
           id: "D",
           title: "Título placeholder D",
           description: "Descripción placeholder para la cuarta subetapa de la ruta.",
+          fullDescription: "Descripción completa placeholder para la subetapa D. Este bloque podrá cerrar la ruta con síntesis, aplicación y evaluación final de los aprendizajes.",
           materials: [
             "Material placeholder D.1",
             "Material placeholder D.2",

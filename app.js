@@ -4,6 +4,7 @@
   var data = window.APP_DATA;
   var storage = window.appStorage;
   var latestStageFeedback = null;
+  var stageModalEscapeReady = false;
 
   function byId(id) {
     return document.getElementById(id);
@@ -235,21 +236,6 @@
     }
   }
 
-  function buildMaterialPanel(stage) {
-    var panel = createElement("div", "material-panel");
-    var title = createElement("strong", "", "Materiales placeholder");
-    var list = document.createElement("ul");
-
-    stage.materials.forEach(function (material) {
-      list.appendChild(createElement("li", "", material));
-    });
-
-    panel.hidden = true;
-    panel.appendChild(title);
-    panel.appendChild(list);
-    return panel;
-  }
-
   function buildFeedback(stageId) {
     if (!latestStageFeedback || latestStageFeedback.stageId !== stageId) {
       return null;
@@ -261,16 +247,71 @@
     return box;
   }
 
-  function buildEvaluationPanel(stage) {
-    var panel = createElement("div", "evaluation-panel");
-    panel.hidden = true;
-    return panel;
+  function getStageStatus(stage, progress) {
+    if (!progress.unlockedStages.includes(stage.id)) {
+      return "Bloqueada";
+    }
+
+    if (progress.completedStages.includes(stage.id)) {
+      return "Completada";
+    }
+
+    return "Disponible";
   }
 
-  function renderEvaluationForm(stage, panel) {
-    empty(panel);
-    panel.hidden = false;
+  function getStageFullDescription(stage) {
+    return stage.fullDescription || stage.description;
+  }
 
+  function ensureStageModal() {
+    var backdrop = byId("stageModalBackdrop");
+
+    if (!backdrop) {
+      backdrop = createElement("div", "stage-modal-backdrop");
+      backdrop.id = "stageModalBackdrop";
+      backdrop.hidden = true;
+      backdrop.addEventListener("click", function (event) {
+        if (event.target === backdrop) {
+          closeStageModal();
+        }
+      });
+      document.body.appendChild(backdrop);
+    }
+
+    if (!stageModalEscapeReady) {
+      document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape" && !backdrop.hidden) {
+          closeStageModal();
+        }
+      });
+      stageModalEscapeReady = true;
+    }
+
+    return backdrop;
+  }
+
+  function closeStageModal() {
+    var backdrop = byId("stageModalBackdrop");
+
+    if (!backdrop) {
+      return;
+    }
+
+    backdrop.hidden = true;
+    document.body.classList.remove("modal-open");
+  }
+
+  function buildStageMaterials(stage) {
+    var list = createElement("ul", "modal-material-list");
+
+    stage.materials.forEach(function (material) {
+      list.appendChild(createElement("li", "", material));
+    });
+
+    return list;
+  }
+
+  function buildModalEvaluationForm(stage) {
     var form = createElement("form", "evaluation-form");
 
     stage.evaluation.questions.forEach(function (question, questionIndex) {
@@ -305,7 +346,80 @@
       handleEvaluationSubmit(event, stage);
     });
 
-    panel.appendChild(form);
+    return form;
+  }
+
+  function openStageModal(stage) {
+    var backdrop = ensureStageModal();
+    var progress = normalizeProgress(storage.getLearningProgress());
+    var modal = createElement("section", "stage-modal");
+    var header = createElement("header", "stage-modal-header");
+    var headingGroup = document.createElement("div");
+    var label = createElement("p", "module-number", "Subetapa " + stage.id);
+    var title = createElement("h3", "", stage.title);
+    var status = createElement("p", "stage-status", getStageStatus(stage, progress));
+    var closeButton = createElement("button", "ghost-button modal-close-button", "Cerrar");
+    var body = createElement("div", "stage-modal-body");
+    var descriptionSection = createElement("section", "modal-section");
+    var materialSection = createElement("section", "modal-section");
+    var materialHeading = createElement("div", "modal-section-heading");
+    var materialTitle = createElement("h4", "", "Materiales");
+    var materialButton = createElement("button", "secondary-button", "Ver material");
+    var materialPreview = createElement(
+      "div",
+      "material-preview",
+      "Vista temporal del material seleccionado. Este espacio luego podrá conectarse a recursos reales o a una base de datos."
+    );
+    var evaluationSection = createElement("section", "modal-section");
+    var feedback = buildFeedback(stage.id);
+
+    empty(backdrop);
+    modal.setAttribute("role", "dialog");
+    modal.setAttribute("aria-modal", "true");
+    modal.setAttribute("aria-labelledby", "stageModalTitle");
+    title.id = "stageModalTitle";
+    closeButton.type = "button";
+    materialButton.type = "button";
+    materialPreview.hidden = true;
+
+    closeButton.addEventListener("click", closeStageModal);
+    materialButton.addEventListener("click", function () {
+      materialPreview.hidden = !materialPreview.hidden;
+      materialButton.textContent = materialPreview.hidden ? "Ver material" : "Ocultar material";
+    });
+
+    headingGroup.appendChild(label);
+    headingGroup.appendChild(title);
+    headingGroup.appendChild(status);
+    header.appendChild(headingGroup);
+    header.appendChild(closeButton);
+
+    descriptionSection.appendChild(createElement("h4", "", "Descripción completa"));
+    descriptionSection.appendChild(createElement("p", "", getStageFullDescription(stage)));
+
+    materialHeading.appendChild(materialTitle);
+    materialHeading.appendChild(materialButton);
+    materialSection.appendChild(materialHeading);
+    materialSection.appendChild(buildStageMaterials(stage));
+    materialSection.appendChild(materialPreview);
+
+    evaluationSection.appendChild(createElement("h4", "", "Mini evaluación"));
+
+    if (feedback) {
+      evaluationSection.appendChild(feedback);
+    }
+
+    evaluationSection.appendChild(buildModalEvaluationForm(stage));
+
+    body.appendChild(descriptionSection);
+    body.appendChild(materialSection);
+    body.appendChild(evaluationSection);
+    modal.appendChild(header);
+    modal.appendChild(body);
+    backdrop.appendChild(modal);
+    backdrop.hidden = false;
+    document.body.classList.add("modal-open");
+    closeButton.focus();
   }
 
   function handleEvaluationSubmit(event, stage) {
@@ -354,6 +468,12 @@
 
     storage.saveLearningProgress(progress);
     renderLearningPath();
+
+    if (score >= minimumScore) {
+      closeStageModal();
+    } else {
+      openStageModal(stage);
+    }
   }
 
   function renderLearningPath() {
@@ -375,16 +495,8 @@
       var title = createElement("h3", "", stage.title);
       var status = createElement("p", "stage-status");
       var description = createElement("p", "", stage.description);
-      var materialPanel = buildMaterialPanel(stage);
-      var evaluationPanel = buildEvaluationPanel(stage);
       var actions = createElement("div", "stage-actions");
-      var materialButton = createElement("button", "secondary-button", "Ver material");
-      var evaluationButton = createElement(
-        "button",
-        "primary-button",
-        isComplete ? "Repetir mini evaluación" : "Realizar mini evaluación"
-      );
-      var feedback = buildFeedback(stage.id);
+      var enterButton = createElement("button", "primary-button", "Entrar a subetapa");
 
       if (!isUnlocked) {
         card.classList.add("is-locked");
@@ -394,37 +506,23 @@
         card.classList.add("is-complete");
       }
 
-      status.textContent = !isUnlocked ? "Bloqueada" : isComplete ? "Aprobada" : "Disponible";
+      status.textContent = getStageStatus(stage, progress);
 
-      materialButton.type = "button";
-      evaluationButton.type = "button";
-      materialButton.disabled = !isUnlocked;
-      evaluationButton.disabled = !isUnlocked;
+      enterButton.type = "button";
+      enterButton.disabled = !isUnlocked;
 
-      materialButton.addEventListener("click", function () {
-        materialPanel.hidden = !materialPanel.hidden;
-      });
-
-      evaluationButton.addEventListener("click", function () {
-        renderEvaluationForm(stage, evaluationPanel);
+      enterButton.addEventListener("click", function () {
+        openStageModal(stage);
       });
 
       titleGroup.appendChild(title);
       titleGroup.appendChild(status);
       head.appendChild(letter);
       head.appendChild(titleGroup);
-      actions.appendChild(materialButton);
-      actions.appendChild(evaluationButton);
+      actions.appendChild(enterButton);
 
       card.appendChild(head);
       card.appendChild(description);
-
-      if (feedback) {
-        card.appendChild(feedback);
-      }
-
-      card.appendChild(materialPanel);
-      card.appendChild(evaluationPanel);
       card.appendChild(actions);
       container.appendChild(card);
     });

@@ -38,6 +38,10 @@ body {
   overflow-x: hidden;
 }
 
+body.modal-open {
+  overflow: hidden;
+}
+
 button,
 input,
 textarea {
@@ -471,6 +475,7 @@ button {
 }
 
 .stage-card {
+  align-content: start;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -563,6 +568,106 @@ button {
   background: #e6e9ea;
   border-color: #d1d8d8;
   color: var(--locked);
+}
+
+.stage-modal-backdrop {
+  align-items: center;
+  background: rgba(31, 45, 52, 0.48);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 24px;
+  position: fixed;
+  z-index: 100;
+}
+
+.stage-modal {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 48px);
+  max-width: 920px;
+  width: 100%;
+}
+
+.stage-modal-header {
+  align-items: flex-start;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  padding: 20px;
+}
+
+.stage-modal-header h3 {
+  font-size: clamp(1.45rem, 3vw, 2.1rem);
+  line-height: 1.15;
+  margin: 0;
+}
+
+.modal-close-button {
+  flex: 0 0 auto;
+}
+
+.stage-modal-body {
+  display: grid;
+  gap: 16px;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.modal-section {
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.modal-section h4 {
+  font-size: 1rem;
+  margin: 0 0 10px;
+}
+
+.modal-section p {
+  color: var(--muted);
+  margin: 0;
+}
+
+.modal-section-heading {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.modal-section-heading h4 {
+  margin: 0;
+}
+
+.modal-material-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.material-preview {
+  background: #fff8ef;
+  border: 1px solid #ead1bd;
+  border-radius: var(--radius);
+  color: #6a3f2c;
+  margin-top: 12px;
+  padding: 12px 14px;
+}
+
+.evaluation-form {
+  display: grid;
+  gap: 16px;
 }
 
 .forum-block {
@@ -713,5 +818,32 @@ button {
 
   .score-note {
     border-radius: var(--radius);
+  }
+
+  .stage-modal-backdrop {
+    align-items: flex-start;
+    padding: 12px;
+  }
+
+  .stage-modal {
+    max-height: calc(100vh - 24px);
+  }
+
+  .stage-modal-header {
+    flex-direction: column;
+    padding: 16px;
+  }
+
+  .modal-close-button {
+    width: 100%;
+  }
+
+  .stage-modal-body {
+    padding: 14px;
+  }
+
+  .modal-section-heading {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
