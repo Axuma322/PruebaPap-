@@ -4,7 +4,6 @@
   var data = window.APP_DATA;
   var storage = window.appStorage;
   var latestStageFeedback = null;
-  var stageModalEscapeReady = false;
 
   function byId(id) {
     return document.getElementById(id);
@@ -23,7 +22,7 @@
       element.className = className;
     }
 
-    if (text) {
+    if (text !== undefined && text !== null) {
       element.textContent = text;
     }
 
@@ -263,46 +262,48 @@
     return stage.fullDescription || stage.description;
   }
 
-  function ensureStageModal() {
-    var backdrop = byId("stageModalBackdrop");
-
-    if (!backdrop) {
-      backdrop = createElement("div", "stage-modal-backdrop");
-      backdrop.id = "stageModalBackdrop";
-      backdrop.hidden = true;
-      backdrop.addEventListener("click", function (event) {
-        if (event.target === backdrop) {
-          closeStageModal();
-        }
-      });
-      document.body.appendChild(backdrop);
-    }
-
-    if (!stageModalEscapeReady) {
-      document.addEventListener("keydown", function (event) {
-        if (event.key === "Escape" && !backdrop.hidden) {
-          closeStageModal();
-        }
-      });
-      stageModalEscapeReady = true;
-    }
-
-    return backdrop;
+  function getStageQuiz(stage) {
+    return stage.quiz || stage.evaluation || { questions: [] };
   }
 
-  function closeStageModal() {
-    var backdrop = byId("stageModalBackdrop");
+  function getStageHash(stage) {
+    return "#etapa-" + stage.id.toLowerCase();
+  }
 
-    if (!backdrop) {
+  function getSelectedStageFromHash() {
+    var match = window.location.hash.match(/^#etapa-([a-z])$/i);
+
+    if (!match) {
+      return null;
+    }
+
+    return data.learningPath.stages.find(function (stage) {
+      return stage.id.toLowerCase() === match[1].toLowerCase();
+    }) || null;
+  }
+
+  function goToRouteMap() {
+    if (window.location.hash === "#ruta") {
+      renderLearningPath();
       return;
     }
 
-    backdrop.hidden = true;
-    document.body.classList.remove("modal-open");
+    window.location.hash = "#ruta";
+  }
+
+  function goToStage(stage) {
+    var targetHash = getStageHash(stage);
+
+    if (window.location.hash === targetHash) {
+      renderLearningPath();
+      return;
+    }
+
+    window.location.hash = targetHash;
   }
 
   function buildStageMaterials(stage) {
-    var list = createElement("ul", "modal-material-list");
+    var list = createElement("ul", "stage-material-list");
 
     stage.materials.forEach(function (material) {
       list.appendChild(createElement("li", "", material));
@@ -311,10 +312,35 @@
     return list;
   }
 
-  function buildModalEvaluationForm(stage) {
-    var form = createElement("form", "evaluation-form");
+  function buildLearningResource(stage) {
+    var resource = createElement("div", "learning-resource");
+    resource.appendChild(createElement("strong", "", "Espacio para PDF, presentación o lectura"));
+    resource.appendChild(createElement(
+      "p",
+      "",
+      "Placeholder editable para insertar más adelante un PDF embebido, una presentación, una lectura o un recurso multimedia de la etapa " + stage.id + "."
+    ));
+    return resource;
+  }
 
-    stage.evaluation.questions.forEach(function (question, questionIndex) {
+  function buildStageDetailSection(title, content) {
+    var section = createElement("section", "stage-detail-section");
+    section.appendChild(createElement("h3", "", title));
+
+    if (typeof content === "string") {
+      section.appendChild(createElement("p", "", content));
+    } else {
+      section.appendChild(content);
+    }
+
+    return section;
+  }
+
+  function buildStageQuizForm(stage) {
+    var form = createElement("form", "evaluation-form");
+    var quiz = getStageQuiz(stage);
+
+    quiz.questions.forEach(function (question, questionIndex) {
       var fieldset = createElement("fieldset", "form-question");
       var legend = createElement("legend", "", question.text);
       var options = createElement("div", "option-stack");
@@ -349,86 +375,71 @@
     return form;
   }
 
-  function openStageModal(stage) {
-    var backdrop = ensureStageModal();
-    var progress = normalizeProgress(storage.getLearningProgress());
-    var modal = createElement("section", "stage-modal");
-    var header = createElement("header", "stage-modal-header");
-    var headingGroup = document.createElement("div");
-    var label = createElement("p", "module-number", "Subetapa " + stage.id);
-    var title = createElement("h3", "", stage.title);
+  function renderStageDetail(container, stage, progress) {
+    var detail = createElement("article", "stage-detail-view");
+    var header = createElement("header", "stage-detail-header");
+    var heading = document.createElement("div");
+    var backButton = createElement("button", "ghost-button stage-back-button", "← Volver a la ruta");
+    var label = createElement("p", "module-number", "Etapa " + stage.id);
+    var title = createElement("h2", "", stage.title);
     var status = createElement("p", "stage-status", getStageStatus(stage, progress));
-    var closeButton = createElement("button", "ghost-button modal-close-button", "Cerrar");
-    var body = createElement("div", "stage-modal-body");
-    var descriptionSection = createElement("section", "modal-section");
-    var materialSection = createElement("section", "modal-section");
-    var materialHeading = createElement("div", "modal-section-heading");
-    var materialTitle = createElement("h4", "", "Materiales");
-    var materialButton = createElement("button", "secondary-button", "Ver material");
-    var materialPreview = createElement(
-      "div",
-      "material-preview",
-      "Vista temporal del material seleccionado. Este espacio luego podrá conectarse a recursos reales o a una base de datos."
-    );
-    var evaluationSection = createElement("section", "modal-section");
+    var content = createElement("div", "stage-detail-content");
+    var mainColumn = createElement("div", "stage-detail-main");
+    var sideColumn = createElement("aside", "stage-detail-aside");
+    var materialSection = createElement("section", "stage-detail-section");
+    var evaluationSection = createElement("section", "stage-detail-section");
     var feedback = buildFeedback(stage.id);
 
-    empty(backdrop);
-    modal.setAttribute("role", "dialog");
-    modal.setAttribute("aria-modal", "true");
-    modal.setAttribute("aria-labelledby", "stageModalTitle");
-    title.id = "stageModalTitle";
-    closeButton.type = "button";
-    materialButton.type = "button";
-    materialPreview.hidden = true;
+    backButton.type = "button";
+    backButton.addEventListener("click", goToRouteMap);
 
-    closeButton.addEventListener("click", closeStageModal);
-    materialButton.addEventListener("click", function () {
-      materialPreview.hidden = !materialPreview.hidden;
-      materialButton.textContent = materialPreview.hidden ? "Ver material" : "Ocultar material";
-    });
+    heading.appendChild(label);
+    heading.appendChild(title);
+    heading.appendChild(status);
+    header.appendChild(backButton);
+    header.appendChild(heading);
 
-    headingGroup.appendChild(label);
-    headingGroup.appendChild(title);
-    headingGroup.appendChild(status);
-    header.appendChild(headingGroup);
-    header.appendChild(closeButton);
-
-    descriptionSection.appendChild(createElement("h4", "", "Descripción completa"));
-    descriptionSection.appendChild(createElement("p", "", getStageFullDescription(stage)));
-
-    materialHeading.appendChild(materialTitle);
-    materialHeading.appendChild(materialButton);
-    materialSection.appendChild(materialHeading);
+    materialSection.appendChild(createElement("h3", "", "Materiales"));
     materialSection.appendChild(buildStageMaterials(stage));
-    materialSection.appendChild(materialPreview);
 
-    evaluationSection.appendChild(createElement("h4", "", "Mini evaluación"));
+    evaluationSection.appendChild(createElement("h3", "", "Mini evaluación"));
 
     if (feedback) {
       evaluationSection.appendChild(feedback);
     }
 
-    evaluationSection.appendChild(buildModalEvaluationForm(stage));
+    evaluationSection.appendChild(buildStageQuizForm(stage));
 
-    body.appendChild(descriptionSection);
-    body.appendChild(materialSection);
-    body.appendChild(evaluationSection);
-    modal.appendChild(header);
-    modal.appendChild(body);
-    backdrop.appendChild(modal);
-    backdrop.hidden = false;
-    document.body.classList.add("modal-open");
-    closeButton.focus();
+    mainColumn.appendChild(buildStageDetailSection("Descripción ampliada", getStageFullDescription(stage)));
+    mainColumn.appendChild(buildStageDetailSection("Introducción", stage.intro || "Introducción placeholder pendiente de edición."));
+    mainColumn.appendChild(materialSection);
+    mainColumn.appendChild(buildStageDetailSection("Recurso de aprendizaje", buildLearningResource(stage)));
+    mainColumn.appendChild(buildStageDetailSection("Actividad", stage.activity || "Actividad placeholder pendiente de edición."));
+    mainColumn.appendChild(evaluationSection);
+
+    sideColumn.appendChild(createElement("strong", "", "Resumen de avance"));
+    sideColumn.appendChild(createElement("p", "", "Nota mínima: " + data.settings.minimumScore + "%"));
+    sideColumn.appendChild(createElement("p", "", "Estado actual: " + getStageStatus(stage, progress)));
+
+    if (progress.scores[stage.id] !== undefined) {
+      sideColumn.appendChild(createElement("p", "", "Último resultado: " + progress.scores[stage.id] + "%"));
+    }
+
+    content.appendChild(mainColumn);
+    content.appendChild(sideColumn);
+    detail.appendChild(header);
+    detail.appendChild(content);
+    container.appendChild(detail);
   }
 
   function handleEvaluationSubmit(event, stage) {
     event.preventDefault();
 
     var formData = new FormData(event.currentTarget);
+    var quiz = getStageQuiz(stage);
     var correctAnswers = 0;
 
-    stage.evaluation.questions.forEach(function (question, questionIndex) {
+    quiz.questions.forEach(function (question, questionIndex) {
       var selectedIndex = Number(formData.get(stage.id + "-question-" + questionIndex));
       var selectedOption = question.options[selectedIndex];
 
@@ -437,7 +448,9 @@
       }
     });
 
-    var score = Math.round((correctAnswers / stage.evaluation.questions.length) * 100);
+    var score = quiz.questions.length
+      ? Math.round((correctAnswers / quiz.questions.length) * 100)
+      : 0;
     var progress = normalizeProgress(storage.getLearningProgress());
     var minimumScore = data.settings.minimumScore;
     var nextStageId = getNextStageId(stage.id);
@@ -455,7 +468,7 @@
         stageId: stage.id,
         title: "Mini evaluación aprobada",
         message: nextStageId
-          ? "Obtuviste " + score + "%. Se desbloqueó la subetapa " + nextStageId + "."
+          ? "Obtuviste " + score + "%. Se desbloqueó la etapa " + nextStageId + "."
           : "Obtuviste " + score + "%. Ruta completada en esta versión temporal."
       };
     } else {
@@ -468,63 +481,76 @@
 
     storage.saveLearningProgress(progress);
     renderLearningPath();
+  }
 
-    if (score >= minimumScore) {
-      closeStageModal();
-    } else {
-      openStageModal(stage);
+  function renderStageCard(container, stage, progress) {
+    var isUnlocked = progress.unlockedStages.includes(stage.id);
+    var isComplete = progress.completedStages.includes(stage.id);
+    var card = createElement("article", "stage-card");
+    var head = createElement("div", "stage-head");
+    var letter = createElement("span", "stage-letter", stage.id);
+    var titleGroup = document.createElement("div");
+    var title = createElement("h3", "", stage.title);
+    var status = createElement("p", "stage-status", getStageStatus(stage, progress));
+    var description = createElement("p", "", stage.description);
+    var actions = createElement("div", "stage-actions");
+    var enterButton = createElement("button", "primary-button", "Entrar a etapa");
+
+    if (!isUnlocked) {
+      card.classList.add("is-locked");
     }
+
+    if (isComplete) {
+      card.classList.add("is-complete");
+    }
+
+    enterButton.type = "button";
+    enterButton.disabled = !isUnlocked;
+    enterButton.addEventListener("click", function () {
+      goToStage(stage);
+    });
+
+    titleGroup.appendChild(title);
+    titleGroup.appendChild(status);
+    head.appendChild(letter);
+    head.appendChild(titleGroup);
+    actions.appendChild(enterButton);
+
+    card.appendChild(head);
+    card.appendChild(description);
+    card.appendChild(actions);
+    container.appendChild(card);
   }
 
   function renderLearningPath() {
+    var routeSection = byId("ruta");
     var container = byId("stageGrid");
     var progress = normalizeProgress(storage.getLearningProgress());
+    var selectedStage = getSelectedStageFromHash();
+    var selectedStageIsUnlocked = selectedStage && progress.unlockedStages.includes(selectedStage.id);
 
     byId("learningTitle").textContent = data.learningPath.title;
     byId("learningDescription").textContent = data.learningPath.description;
     byId("minimumScoreNote").textContent = "Nota mínima configurable: " + data.settings.minimumScore + "%";
     empty(container);
 
+    if (selectedStage && !selectedStageIsUnlocked) {
+      selectedStage = null;
+      window.location.hash = "#ruta";
+    }
+
+    document.body.classList.toggle("stage-page-active", Boolean(selectedStage));
+    routeSection.classList.toggle("is-stage-view", Boolean(selectedStage));
+    container.className = selectedStage ? "stage-detail-shell" : "stage-grid";
+
+    if (selectedStage) {
+      renderStageDetail(container, selectedStage, progress);
+      routeSection.scrollIntoView({ block: "start" });
+      return;
+    }
+
     data.learningPath.stages.forEach(function (stage) {
-      var isUnlocked = progress.unlockedStages.includes(stage.id);
-      var isComplete = progress.completedStages.includes(stage.id);
-      var card = createElement("article", "stage-card");
-      var head = createElement("div", "stage-head");
-      var letter = createElement("span", "stage-letter", stage.id);
-      var titleGroup = document.createElement("div");
-      var title = createElement("h3", "", stage.title);
-      var status = createElement("p", "stage-status");
-      var description = createElement("p", "", stage.description);
-      var actions = createElement("div", "stage-actions");
-      var enterButton = createElement("button", "primary-button", "Entrar a subetapa");
-
-      if (!isUnlocked) {
-        card.classList.add("is-locked");
-      }
-
-      if (isComplete) {
-        card.classList.add("is-complete");
-      }
-
-      status.textContent = getStageStatus(stage, progress);
-
-      enterButton.type = "button";
-      enterButton.disabled = !isUnlocked;
-
-      enterButton.addEventListener("click", function () {
-        openStageModal(stage);
-      });
-
-      titleGroup.appendChild(title);
-      titleGroup.appendChild(status);
-      head.appendChild(letter);
-      head.appendChild(titleGroup);
-      actions.appendChild(enterButton);
-
-      card.appendChild(head);
-      card.appendChild(description);
-      card.appendChild(actions);
-      container.appendChild(card);
+      renderStageCard(container, stage, progress);
     });
   }
 
@@ -614,6 +640,7 @@
     renderLearningPath();
     renderForum();
     setupDevelopmentResetButton();
+    window.addEventListener("hashchange", renderLearningPath);
   }
 
   document.addEventListener("DOMContentLoaded", init);
