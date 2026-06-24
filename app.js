@@ -86,14 +86,64 @@
     }
 
     if (message.includes("password")) {
-      return "Revisa la contraseña ingresada.";
+      return "Revisa la contraseña ingresada. Debe cumplir las reglas indicadas en el formulario.";
+    }
+
+    if (message.includes("email")) {
+      return "El usuario no pudo convertirse en un email técnico válido. Usa solo letras, números, guion o guion bajo.";
     }
 
     if (message.includes("failed to fetch") || message.includes("network")) {
       return "No se pudo conectar con Supabase. Revisa la conexión e intenta de nuevo.";
     }
 
-    return "Ocurrió un error de conexión o autenticación. Intenta nuevamente.";
+    return "No se pudo completar la operación. Revisa los datos e intenta nuevamente.";
+  }
+
+  function getUsernameValidationMessage(rawUsername, username) {
+    if (!rawUsername.trim()) {
+      return "Ingresa un usuario para continuar.";
+    }
+
+    if (!authHelpers.isUsernameFormatValid(rawUsername)) {
+      return "El usuario solo puede usar letras, números, guion y guion bajo.";
+    }
+
+    if (!username || username.length < authHelpers.minimumUsernameLength) {
+      return "El usuario debe tener al menos " + authHelpers.minimumUsernameLength + " caracteres.";
+    }
+
+    return "";
+  }
+
+  function getPasswordValidationMessage(password) {
+    var missingRules = [];
+
+    if (password.length < 8) {
+      missingRules.push("mínimo 8 caracteres");
+    }
+
+    if (!/[A-Z]/.test(password)) {
+      missingRules.push("una mayúscula");
+    }
+
+    if (!/[a-z]/.test(password)) {
+      missingRules.push("una minúscula");
+    }
+
+    if (!/[0-9]/.test(password)) {
+      missingRules.push("un número");
+    }
+
+    if (!/[^A-Za-z0-9]/.test(password)) {
+      missingRules.push("un símbolo");
+    }
+
+    if (!missingRules.length) {
+      return "";
+    }
+
+    return "La contraseña debe incluir " + missingRules.join(", ") + ".";
   }
 
   function setAccessMode(mode) {
@@ -138,10 +188,33 @@
     appState.user = null;
     appState.profile = null;
     appState.remoteProgress = null;
+    storage.setCurrentStorageUser("");
   }
 
   function isAuthReady() {
     return Boolean(supabaseClient && authHelpers);
+  }
+
+  function refreshDiagnosisForCurrentUser() {
+    var result = storage.getDiagnosisResult();
+    var form = byId("diagnosisForm");
+    var startButton = byId("startDiagnosisButton");
+
+    renderDiagnosisResult(result);
+
+    if (form) {
+      form.hidden = true;
+    }
+
+    if (startButton) {
+      startButton.textContent = result ? "Repetir diagnóstico" : "Iniciar diagnóstico";
+    }
+  }
+
+  function refreshUserScopedContent() {
+    latestStageFeedback = null;
+    refreshDiagnosisForCurrentUser();
+    renderLearningPath();
   }
 
   function applySessionState(hasSession) {
@@ -161,7 +234,7 @@
     document.body.classList.remove("access-required");
     updateSessionWidget();
     updateForumIdentity();
-    renderLearningPath();
+    refreshUserScopedContent();
   }
 
   async function loadSupabaseUserState(user) {
@@ -192,6 +265,7 @@
 
     appState.profile = profileResponse.data;
     appState.remoteProgress = progressResponse.data;
+    storage.setCurrentStorageUser(getCurrentUsername() || user.id);
   }
 
   async function createInitialProfileAndProgress(user, username) {
@@ -230,6 +304,8 @@
     var passwordConfirm = form.elements.passwordConfirm.value;
     var email = isAuthReady() ? authHelpers.usernameToEmail(rawUsername) : "";
     var signUpResponse;
+    var usernameValidationMessage;
+    var passwordValidationMessage;
 
     if (!isAuthReady()) {
       setAccessMessage("registerMessage", "No se pudo inicializar Supabase. Revisa la conexión e intenta de nuevo.");
@@ -241,8 +317,17 @@
       return;
     }
 
-    if (!username || username.length < authHelpers.minimumUsernameLength) {
-      setAccessMessage("registerMessage", "El usuario debe tener al menos " + authHelpers.minimumUsernameLength + " caracteres válidos.");
+    usernameValidationMessage = getUsernameValidationMessage(rawUsername, username);
+
+    if (usernameValidationMessage) {
+      setAccessMessage("registerMessage", usernameValidationMessage);
+      return;
+    }
+
+    passwordValidationMessage = getPasswordValidationMessage(password);
+
+    if (passwordValidationMessage) {
+      setAccessMessage("registerMessage", passwordValidationMessage);
       return;
     }
 
@@ -291,6 +376,7 @@
 
       await createInitialProfileAndProgress(signUpResponse.data.user, username);
       await loadSupabaseUserState(signUpResponse.data.user);
+      storage.clearCurrentUserData();
 
       form.reset();
       setAccessMessage("registerMessage", "Registro exitoso.");
@@ -309,6 +395,7 @@
     var password = form.elements.password.value;
     var email = isAuthReady() ? authHelpers.usernameToEmail(rawUsername) : "";
     var signInResponse;
+    var usernameValidationMessage;
 
     if (!isAuthReady()) {
       setAccessMessage("loginMessage", "No se pudo inicializar Supabase. Revisa la conexión e intenta de nuevo.");
@@ -320,8 +407,10 @@
       return;
     }
 
-    if (!username || username.length < authHelpers.minimumUsernameLength) {
-      setAccessMessage("loginMessage", "El usuario debe tener al menos " + authHelpers.minimumUsernameLength + " caracteres válidos.");
+    usernameValidationMessage = getUsernameValidationMessage(rawUsername, username);
+
+    if (usernameValidationMessage) {
+      setAccessMessage("loginMessage", usernameValidationMessage);
       return;
     }
 
@@ -805,6 +894,7 @@
     var formData = new FormData(event.currentTarget);
     var quiz = getStageQuiz(stage);
     var correctAnswers = 0;
+    var selectedAnswers = [];
 
     quiz.questions.forEach(function (question, questionIndex) {
       var selectedIndex = Number(formData.get(stage.id + "-question-" + questionIndex));
@@ -813,6 +903,12 @@
       if (selectedOption && selectedOption.correct) {
         correctAnswers += 1;
       }
+
+      selectedAnswers.push({
+        question: question.text,
+        answer: selectedOption ? selectedOption.label : "",
+        correct: Boolean(selectedOption && selectedOption.correct)
+      });
     });
 
     var score = quiz.questions.length
@@ -821,10 +917,20 @@
     var progress = normalizeProgress(storage.getLearningProgress());
     var minimumScore = data.settings.minimumScore;
     var nextStageId = getNextStageId(stage.id);
+    var passed = score >= minimumScore;
 
     progress.scores[stage.id] = score;
 
-    if (score >= minimumScore) {
+    storage.addEvaluationAttempt({
+      id: String(Date.now()),
+      stageId: stage.id,
+      score: score,
+      passed: passed,
+      answers: selectedAnswers,
+      createdAt: new Date().toISOString()
+    });
+
+    if (passed) {
       addUnique(progress.completedStages, stage.id);
 
       if (nextStageId) {
@@ -935,7 +1041,7 @@
     comments.forEach(function (comment) {
       var card = createElement("article", "comment-card");
       var header = document.createElement("header");
-      var author = createElement("strong", "", comment.name);
+      var author = createElement("strong", "", comment.username || comment.name);
       var time = document.createElement("time");
       var body = createElement("p", "", comment.comment);
 
@@ -963,6 +1069,7 @@
 
     storage.addForumComment({
       id: String(Date.now()),
+      username: name,
       name: name,
       comment: comment,
       createdAt: new Date().toISOString()
@@ -992,18 +1099,19 @@
     resetButtons.forEach(function (resetButton) {
       resetButton.addEventListener("click", async function () {
         var confirmed = window.confirm(
-          "Esta herramienta temporal borrará la sesión local de Supabase, diagnóstico, progreso y comentarios guardados en este navegador. ¿Deseas continuar?"
+          "Esta herramienta temporal borrará solo el diagnóstico, progreso y evaluaciones locales del usuario activo. El foro global temporal y otros usuarios no se borrarán. ¿Deseas continuar?"
         );
 
         if (!confirmed) {
           return;
         }
 
+        storage.clearTestData();
+
         if (supabaseClient) {
           await supabaseClient.auth.signOut();
         }
 
-        storage.clearTestData();
         window.location.reload();
       });
     });

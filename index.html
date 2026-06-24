@@ -25,14 +25,16 @@
       </div>
 
       <!-- Supabase Auth: estos formularios usan un email técnico generado desde el usuario. -->
-      <form class="access-form" id="registerForm" role="tabpanel" aria-labelledby="registerTab">
+      <form class="access-form" id="registerForm" role="tabpanel" aria-labelledby="registerTab" novalidate>
         <label>
           Usuario
-          <input id="registerUsername" name="username" type="text" autocomplete="username" minlength="3" required>
+          <input id="registerUsername" name="username" type="text" autocomplete="username" minlength="3" aria-describedby="registerUsernameHelp" required>
+          <span class="field-help" id="registerUsernameHelp">Ejemplo: gabi01, profe_1 o estudiante-01</span>
         </label>
         <label>
           Contraseña
-          <input id="registerPassword" name="password" type="password" autocomplete="new-password" required>
+          <input id="registerPassword" name="password" type="password" autocomplete="new-password" aria-describedby="registerPasswordHelp" required>
+          <span class="field-help" id="registerPasswordHelp">Mínimo 8 caracteres, una mayúscula, una minúscula, un número y un símbolo. Ejemplo: Gabi2003*</span>
         </label>
         <label>
           Confirmar contraseña
@@ -42,10 +44,11 @@
         <button class="primary-button" type="submit">Crear cuenta</button>
       </form>
 
-      <form class="access-form" id="loginForm" role="tabpanel" aria-labelledby="loginTab" hidden>
+      <form class="access-form" id="loginForm" role="tabpanel" aria-labelledby="loginTab" hidden novalidate>
         <label>
           Usuario
-          <input id="loginUsername" name="username" type="text" autocomplete="username" minlength="3" required>
+          <input id="loginUsername" name="username" type="text" autocomplete="username" minlength="3" aria-describedby="loginUsernameHelp" required>
+          <span class="field-help" id="loginUsernameHelp">Ejemplo: gabi01, profe_1 o estudiante-01</span>
         </label>
         <label>
           Contraseña

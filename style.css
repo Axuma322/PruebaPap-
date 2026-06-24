@@ -216,6 +216,13 @@ button {
   outline: 3px solid rgba(49, 95, 138, 0.14);
 }
 
+.field-help {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
 .access-message {
   color: #6a3f2c;
   font-size: 0.9rem;

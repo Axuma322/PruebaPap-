@@ -8,8 +8,8 @@
   var USER_EMAIL_DOMAIN = "@usuarios.example.com";
   var MIN_USERNAME_LENGTH = 3;
 
-  function normalizeUsername(rawUsername) {
-    var normalized = String(rawUsername || "")
+  function removeDiacritics(value) {
+    var normalized = String(value || "")
       .trim()
       .toLowerCase();
 
@@ -17,14 +17,27 @@
       normalized = normalized.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
     }
 
-    return normalized
-      .replace(/[^a-z0-9_-]/g, "");
+    return normalized;
+  }
+
+  function normalizeUsername(rawUsername) {
+    return removeDiacritics(rawUsername);
+  }
+
+  function isUsernameFormatValid(rawUsername) {
+    var normalizedUsername = normalizeUsername(rawUsername);
+
+    return /^[a-z0-9_-]+$/.test(normalizedUsername);
   }
 
   function usernameToEmail(rawUsername) {
     var normalizedUsername = normalizeUsername(rawUsername);
 
-    if (!normalizedUsername || normalizedUsername.length < MIN_USERNAME_LENGTH) {
+    if (
+      !normalizedUsername
+      || normalizedUsername.length < MIN_USERNAME_LENGTH
+      || !isUsernameFormatValid(rawUsername)
+    ) {
       return "";
     }
 
@@ -50,6 +63,7 @@
 
   window.supabaseAuthHelpers = {
     minimumUsernameLength: MIN_USERNAME_LENGTH,
+    isUsernameFormatValid: isUsernameFormatValid,
     normalizeUsername: normalizeUsername,
     usernameToEmail: usernameToEmail
   };

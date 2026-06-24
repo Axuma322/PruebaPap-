@@ -1,12 +1,13 @@
 (function () {
   "use strict";
 
-  var PREFIX = "tesis-neuroeducacion:";
-  var RESET_KEYS = [
-    "diagnosis-result",
-    "learning-progress",
-    "forum-comments"
+  var PREFIX = "neuroaprendizaje:";
+  var USER_DATA_KEYS = [
+    "diagnostic",
+    "progress",
+    "evaluations"
   ];
+  var currentStorageUser = "";
   var memoryStore = {};
 
   function hasLocalStorage() {
@@ -83,24 +84,102 @@
     };
   }
 
+  function normalizeStorageUser(usernameOrUserId) {
+    var normalized = String(usernameOrUserId || "")
+      .trim()
+      .toLowerCase();
+
+    if (normalized.normalize) {
+      normalized = normalized.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    }
+
+    return normalized.replace(/[^a-z0-9_-]/g, "");
+  }
+
   window.appStorage = {
+    setCurrentStorageUser: function (usernameOrUserId) {
+      currentStorageUser = normalizeStorageUser(usernameOrUserId);
+      return currentStorageUser;
+    },
+
+    getCurrentStorageUser: function () {
+      return currentStorageUser;
+    },
+
+    getUserScopedKey: function (key) {
+      if (!currentStorageUser) {
+        return "";
+      }
+
+      return currentStorageUser + ":" + key;
+    },
+
+    saveUserData: function (key, value) {
+      var scopedKey = this.getUserScopedKey(key);
+
+      if (!scopedKey) {
+        return false;
+      }
+
+      return write(scopedKey, value);
+    },
+
+    loadUserData: function (key, fallback) {
+      var scopedKey = this.getUserScopedKey(key);
+
+      if (!scopedKey) {
+        return fallback;
+      }
+
+      return read(scopedKey, fallback);
+    },
+
+    removeUserData: function (key) {
+      var scopedKey = this.getUserScopedKey(key);
+
+      if (!scopedKey) {
+        return false;
+      }
+
+      return remove(scopedKey);
+    },
+
+    clearCurrentUserData: function () {
+      var self = this;
+
+      USER_DATA_KEYS.forEach(function (key) {
+        self.removeUserData(key);
+      });
+    },
+
     getDiagnosisResult: function () {
-      return read("diagnosis-result", null);
+      return this.loadUserData("diagnostic", null);
     },
 
     saveDiagnosisResult: function (result) {
       // Temporal: luego migrar estos resultados a la tabla diagnostic_answers.
-      return write("diagnosis-result", result);
+      return this.saveUserData("diagnostic", result);
     },
 
     getLearningProgress: function () {
-      var savedProgress = read("learning-progress", null);
+      var savedProgress = this.loadUserData("progress", null);
       return savedProgress || getDefaultProgress();
     },
 
     saveLearningProgress: function (progress) {
       // Temporal: esta vista usa progreso local; luego sincronizar con la tabla progress.
-      return write("learning-progress", progress);
+      return this.saveUserData("progress", progress);
+    },
+
+    getEvaluationAttempts: function () {
+      return this.loadUserData("evaluations", []);
+    },
+
+    addEvaluationAttempt: function (attempt) {
+      var attempts = this.getEvaluationAttempts();
+      attempts.unshift(attempt);
+      this.saveUserData("evaluations", attempts);
+      return attempts;
     },
 
     getForumComments: function () {
@@ -112,24 +191,16 @@
     },
 
     addForumComment: function (comment) {
-      // Temporal: luego reemplazar por inserciones reales en la tabla forum_posts.
+      // Foro temporal global: luego reemplazar por inserciones reales en la tabla forum_posts.
       var comments = this.getForumComments();
       comments.unshift(comment);
       this.saveForumComments(comments);
       return comments;
     },
 
-    // Herramienta temporal de desarrollo: limpia localStorage del prototipo.
+    // Herramienta temporal de desarrollo: limpia solo datos locales del usuario activo.
     clearTestData: function () {
-      try {
-        if (localStorageAvailable) {
-          window.localStorage.clear();
-        }
-      } catch (error) {
-        RESET_KEYS.forEach(remove);
-      }
-
-      memoryStore = {};
+      this.clearCurrentUserData();
     }
   };
 })();
