@@ -11,8 +11,11 @@
     remoteProgress: null,
     diagnosisResult: null,
     quizScores: {},
+    quizAttemptsByStage: {},
     forumPosts: [],
-    remoteDataLoaded: false
+    remoteDataLoaded: false,
+    isSavingDiagnostic: false,
+    savingQuizStages: {}
   };
   var latestStageFeedback = null;
 
@@ -161,6 +164,18 @@
     notice.textContent = message || "";
   }
 
+  function isDuplicateRecordError(error) {
+    var message = (error && error.message ? error.message : "").toLowerCase();
+    var details = (error && error.details ? error.details : "").toLowerCase();
+    var code = error && error.code;
+
+    return code === "23505"
+      || message.includes("duplicate")
+      || message.includes("unique")
+      || details.includes("already exists")
+      || details.includes("unique");
+  }
+
   function getDefaultProgressRow() {
     return {
       user_id: appState.user ? appState.user.id : "",
@@ -172,11 +187,17 @@
 
   function normalizeProgressRow(row) {
     var normalized = row || getDefaultProgressRow();
-    var completedStages = Array.isArray(normalized.completed_stages)
-      ? normalized.completed_stages
-      : [];
+    var completedStages = [];
     var currentStage = normalized.current_stage || "A";
-    var firstPendingStage = data.learningPath.stages.find(function (stage) {
+    var firstPendingStage;
+
+    if (Array.isArray(normalized.completed_stages)) {
+      normalized.completed_stages.forEach(function (stageId) {
+        addUnique(completedStages, stageId);
+      });
+    }
+
+    firstPendingStage = data.learningPath.stages.find(function (stage) {
       return !completedStages.includes(stage.id);
     });
 
@@ -218,6 +239,22 @@
     }
 
     return normalizeProgress(storage.getLearningProgress());
+  }
+
+  function isDiagnosticCompleted() {
+    return Boolean(
+      (appState.remoteProgress && normalizeProgressRow(appState.remoteProgress).diagnostic_completed)
+      || appState.diagnosisResult
+    );
+  }
+
+  function getStageAttempt(stageId) {
+    return appState.quizAttemptsByStage[stageId] || null;
+  }
+
+  function isStageCompleted(stageId, progress) {
+    var currentProgress = progress || getLearningProgressForRender();
+    return currentProgress.completedStages.includes(stageId);
   }
 
   async function saveRemoteProgress(fields) {
@@ -297,10 +334,15 @@
     }
 
     appState.quizScores = {};
+    appState.quizAttemptsByStage = {};
 
     (response.data || []).forEach(function (attempt) {
       if (attempt.stage_key && appState.quizScores[attempt.stage_key] === undefined) {
         appState.quizScores[attempt.stage_key] = attempt.score;
+      }
+
+      if (attempt.stage_key && !appState.quizAttemptsByStage[attempt.stage_key]) {
+        appState.quizAttemptsByStage[attempt.stage_key] = attempt;
       }
     });
 
@@ -366,8 +408,11 @@
     appState.remoteProgress = null;
     appState.diagnosisResult = null;
     appState.quizScores = {};
+    appState.quizAttemptsByStage = {};
     appState.forumPosts = [];
     appState.remoteDataLoaded = false;
+    appState.isSavingDiagnostic = false;
+    appState.savingQuizStages = {};
     storage.setCurrentStorageUser("");
   }
 
@@ -382,13 +427,29 @@
     var form = byId("diagnosisForm");
     var startButton = byId("startDiagnosisButton");
 
-    renderDiagnosisResult(result);
-
     if (form) {
       form.hidden = true;
     }
 
+    if (isDiagnosticCompleted()) {
+      if (result) {
+        renderDiagnosisResult(result);
+      } else {
+        renderDiagnosisNotice("Diagnóstico ya completado", "Esta respuesta ya fue registrada.");
+      }
+
+      if (startButton) {
+        startButton.textContent = "Diagnóstico ya completado";
+        startButton.disabled = true;
+      }
+
+      return;
+    }
+
+    renderDiagnosisResult(result);
+
     if (startButton) {
+      startButton.disabled = false;
       startButton.textContent = result ? "Repetir diagnóstico" : "Iniciar diagnóstico";
     }
   }
@@ -762,6 +823,15 @@
     box.appendChild(createElement("span", "", result.label + " - " + formatDate(result.createdAt)));
   }
 
+  function renderDiagnosisNotice(title, message) {
+    var box = byId("diagnosisSavedResult");
+
+    empty(box);
+    box.hidden = false;
+    box.appendChild(createElement("strong", "", title));
+    box.appendChild(createElement("span", "", message));
+  }
+
   function renderDiagnosisQuestions() {
     var list = byId("diagnosisQuestionList");
     empty(list);
@@ -774,6 +844,12 @@
   function renderDiagnosisForm() {
     var form = byId("diagnosisForm");
     empty(form);
+
+    if (isDiagnosticCompleted()) {
+      renderDiagnosisNotice("Diagnóstico ya completado", "Esta respuesta ya fue registrada.");
+      form.hidden = true;
+      return;
+    }
 
     data.diagnosis.questions.forEach(function (question) {
       var fieldset = createElement("fieldset", "form-question");
@@ -802,16 +878,38 @@
       form.appendChild(fieldset);
     });
 
-    form.appendChild(createElement("button", "primary-button", "Guardar resultado"));
+    form.appendChild(createElement("button", "primary-button", "Enviar diagnóstico"));
     form.hidden = false;
   }
 
   async function handleDiagnosisSubmit(event) {
     event.preventDefault();
 
-    var formData = new FormData(event.currentTarget);
+    var form = event.currentTarget;
+    var submitButton = form.querySelector("button[type='submit'], button:not([type])");
+    var originalButtonText = submitButton ? submitButton.textContent : "";
+    var formData;
     var answers = [];
     var totalScore = 0;
+
+    if (appState.isSavingDiagnostic) {
+      return;
+    }
+
+    if (isDiagnosticCompleted()) {
+      renderDiagnosisNotice("Diagnóstico ya completado", "Esta respuesta ya fue registrada.");
+      form.hidden = true;
+      return;
+    }
+
+    appState.isSavingDiagnostic = true;
+
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = "Guardando...";
+    }
+
+    formData = new FormData(form);
 
     data.diagnosis.questions.forEach(function (question) {
       var selectedValue = Number(formData.get(question.id));
@@ -846,19 +944,48 @@
       if (diagnosisResponse.error) {
         throw diagnosisResponse.error;
       }
-
-      await saveRemoteProgress({ diagnostic_completed: true });
-      appState.diagnosisResult = result;
-      storage.saveDiagnosisResult(result);
-      setSyncNotice("");
     } catch (error) {
-      storage.saveDiagnosisResult(result);
-      setSyncNotice("No se pudo sincronizar el diagnóstico con Supabase. Se guardó una copia local de respaldo para este navegador.");
+      appState.isSavingDiagnostic = false;
+
+      if (isDuplicateRecordError(error)) {
+        try {
+          await loadLatestDiagnosticAnswer();
+          await saveRemoteProgress({ diagnostic_completed: true });
+        } catch (syncError) {
+          setSyncNotice("Esta respuesta ya fue registrada, pero no se pudo refrescar el progreso remoto.");
+        }
+
+        renderDiagnosisNotice("Diagnóstico ya completado", "Esta respuesta ya fue registrada.");
+        form.hidden = true;
+        byId("startDiagnosisButton").textContent = "Diagnóstico ya completado";
+        byId("startDiagnosisButton").disabled = true;
+        setSyncNotice("Esta respuesta ya fue registrada.");
+        return;
+      }
+
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = originalButtonText;
+      }
+
+      setSyncNotice("No se pudo guardar el diagnóstico en Supabase. Revisa la conexión e intenta nuevamente.");
+      return;
     }
 
+    try {
+      await saveRemoteProgress({ diagnostic_completed: true });
+      setSyncNotice("");
+    } catch (error) {
+      setSyncNotice("El diagnóstico fue registrado, pero no se pudo actualizar el progreso remoto. Revisa la conexión e intenta recargar.");
+    }
+
+    appState.diagnosisResult = result;
+    storage.saveDiagnosisResult(result);
+    appState.isSavingDiagnostic = false;
     renderDiagnosisResult(result);
-    event.currentTarget.hidden = true;
-    byId("startDiagnosisButton").textContent = "Repetir diagnóstico";
+    form.hidden = true;
+    byId("startDiagnosisButton").textContent = "Diagnóstico ya completado";
+    byId("startDiagnosisButton").disabled = true;
   }
 
   function renderDiagnosis() {
@@ -910,9 +1037,13 @@
       return null;
     }
 
+    return buildFeedbackBox(latestStageFeedback.title, latestStageFeedback.message);
+  }
+
+  function buildFeedbackBox(title, message) {
     var box = createElement("div", "feedback-box");
-    box.appendChild(createElement("strong", "", latestStageFeedback.title));
-    box.appendChild(createElement("span", "", latestStageFeedback.message));
+    box.appendChild(createElement("strong", "", title));
+    box.appendChild(createElement("span", "", message));
     return box;
   }
 
@@ -1078,7 +1209,19 @@
       evaluationSection.appendChild(feedback);
     }
 
-    evaluationSection.appendChild(buildStageQuizForm(stage));
+    if (isStageCompleted(stage.id, progress)) {
+      evaluationSection.appendChild(buildFeedbackBox(
+        "Esta etapa ya fue completada",
+        "La mini evaluación de esta etapa ya fue registrada."
+      ));
+    } else if (getStageAttempt(stage.id)) {
+      evaluationSection.appendChild(buildFeedbackBox(
+        "Esta respuesta ya fue registrada",
+        "Ya existe un intento de mini evaluación para esta etapa."
+      ));
+    } else {
+      evaluationSection.appendChild(buildStageQuizForm(stage));
+    }
 
     mainColumn.appendChild(buildStageDetailSection("Descripción ampliada", getStageFullDescription(stage)));
     mainColumn.appendChild(buildStageDetailSection("Introducción", stage.intro || "Introducción placeholder pendiente de edición."));
@@ -1106,10 +1249,47 @@
   async function handleEvaluationSubmit(event, stage) {
     event.preventDefault();
 
-    var formData = new FormData(event.currentTarget);
+    var form = event.currentTarget;
+    var submitButton = form.querySelector("button[type='submit'], button:not([type])");
+    var originalButtonText = submitButton ? submitButton.textContent : "";
+    var progress = getLearningProgressForRender();
+    var formData;
     var quiz = getStageQuiz(stage);
     var correctAnswers = 0;
     var selectedAnswers = [];
+
+    if (appState.savingQuizStages[stage.id]) {
+      return;
+    }
+
+    if (isStageCompleted(stage.id, progress)) {
+      latestStageFeedback = {
+        stageId: stage.id,
+        title: "Esta etapa ya fue completada",
+        message: "La mini evaluación de esta etapa ya fue registrada."
+      };
+      renderLearningPath();
+      return;
+    }
+
+    if (getStageAttempt(stage.id)) {
+      latestStageFeedback = {
+        stageId: stage.id,
+        title: "Esta respuesta ya fue registrada",
+        message: "Ya existe un intento de mini evaluación para esta etapa."
+      };
+      renderLearningPath();
+      return;
+    }
+
+    appState.savingQuizStages[stage.id] = true;
+
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = "Guardando...";
+    }
+
+    formData = new FormData(form);
 
     quiz.questions.forEach(function (question, questionIndex) {
       var selectedIndex = Number(formData.get(stage.id + "-question-" + questionIndex));
@@ -1129,22 +1309,63 @@
     var score = quiz.questions.length
       ? Math.round((correctAnswers / quiz.questions.length) * 100)
       : 0;
-    var progress = getLearningProgressForRender();
     var minimumScore = data.settings.minimumScore;
     var nextStageId = getNextStageId(stage.id);
     var passed = score >= minimumScore;
-
-    progress.scores[stage.id] = score;
-
     var attempt = {
       id: String(Date.now()),
       stageId: stage.id,
+      stage_key: stage.id,
       score: score,
       passed: passed,
       answers: selectedAnswers,
       createdAt: new Date().toISOString()
     };
 
+    try {
+      var attemptResponse = await supabaseClient.from("quiz_attempts").insert({
+        user_id: appState.user.id,
+        stage_key: stage.id,
+        answers: selectedAnswers,
+        score: score,
+        passed: passed
+      });
+
+      if (attemptResponse.error) {
+        throw attemptResponse.error;
+      }
+    } catch (error) {
+      appState.savingQuizStages[stage.id] = false;
+
+      if (isDuplicateRecordError(error)) {
+        try {
+          await loadQuizAttempts();
+        } catch (syncError) {
+          setSyncNotice("Esta respuesta ya fue registrada, pero no se pudo refrescar la lista de intentos.");
+        }
+
+        latestStageFeedback = {
+          stageId: stage.id,
+          title: "Esta respuesta ya fue registrada",
+          message: "Ya existe un intento de mini evaluación para esta etapa."
+        };
+        setSyncNotice("Esta respuesta ya fue registrada.");
+        renderLearningPath();
+        return;
+      }
+
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = originalButtonText;
+      }
+
+      setSyncNotice("No se pudo guardar la mini evaluación en Supabase. Revisa la conexión e intenta nuevamente.");
+      return;
+    }
+
+    appState.quizAttemptsByStage[stage.id] = attempt;
+    appState.quizScores[stage.id] = score;
+    progress.scores[stage.id] = score;
     storage.addEvaluationAttempt(attempt);
 
     if (passed) {
@@ -1159,7 +1380,7 @@
         title: "Mini evaluación aprobada",
         message: nextStageId
           ? "Obtuviste " + score + "%. Se desbloqueó la etapa " + nextStageId + "."
-          : "Obtuviste " + score + "%. Ruta completada en esta versión temporal."
+          : "Obtuviste " + score + "%. Ruta completada."
       };
     } else {
       latestStageFeedback = {
@@ -1170,21 +1391,8 @@
     }
 
     storage.saveLearningProgress(progress);
-    appState.quizScores[stage.id] = score;
 
     try {
-      var attemptResponse = await supabaseClient.from("quiz_attempts").insert({
-        user_id: appState.user.id,
-        stage_key: stage.id,
-        answers: selectedAnswers,
-        score: score,
-        passed: passed
-      });
-
-      if (attemptResponse.error) {
-        throw attemptResponse.error;
-      }
-
       if (passed) {
         await saveRemoteProgress({
           current_stage: nextStageId || stage.id,
@@ -1194,9 +1402,10 @@
 
       setSyncNotice("");
     } catch (error) {
-      setSyncNotice("No se pudo sincronizar la mini evaluación con Supabase. Se conservó una copia local de respaldo en este navegador.");
+      setSyncNotice("La mini evaluación fue registrada, pero no se pudo actualizar el progreso remoto. Revisa la conexión e intenta recargar.");
     }
 
+    appState.savingQuizStages[stage.id] = false;
     renderLearningPath();
   }
 
