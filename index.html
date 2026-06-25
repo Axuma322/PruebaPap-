@@ -25,6 +25,8 @@
         <button class="access-tab" id="loginTab" type="button" role="tab" aria-selected="false" aria-controls="loginForm">Iniciar sesión</button>
       </div>
 
+      <button class="guide-launch-button" data-guide-button type="button">Ver guía de uso</button>
+
       <!-- Supabase Auth: estos formularios usan un email técnico generado desde el usuario. -->
       <form class="access-form" id="registerForm" role="tabpanel" aria-labelledby="registerTab" novalidate>
         <label>
@@ -75,6 +77,7 @@
       <!-- Supabase Auth: muestra el perfil cargado desde profiles. -->
       <div class="session-widget" id="sessionWidget" hidden>
         <span id="sessionLabel"></span>
+        <button class="ghost-button" data-guide-button type="button">Ver guía de uso</button>
         <button class="ghost-button" id="logoutButton" type="button">Cerrar sesión</button>
       </div>
     </nav>
@@ -111,20 +114,7 @@
         <p id="diagnosisDescription"></p>
       </div>
 
-      <div class="diagnosis-layout">
-        <div>
-          <h3>Ítems preliminares</h3>
-          <ul class="question-list" id="diagnosisQuestionList"></ul>
-        </div>
-
-        <div class="action-panel">
-          <button class="primary-button" id="startDiagnosisButton" type="button">Iniciar diagnóstico</button>
-          <p class="helper-text">El resultado se sincroniza con Supabase y se conserva una copia local de respaldo.</p>
-          <div class="result-box" id="diagnosisSavedResult" hidden></div>
-        </div>
-      </div>
-
-      <form class="inline-form" id="diagnosisForm" hidden></form>
+      <div id="diagnosisContent"></div>
     </section>
 
     <section class="module-block" id="ruta" aria-labelledby="learningTitle">

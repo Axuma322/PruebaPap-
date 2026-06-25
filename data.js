@@ -44,6 +44,7 @@
     diagnosis: {
       title: "Módulo 1 - Diagnóstico y Autoevaluación Neuroeducativa (DNA)",
       description: "Instrumento digital de autoevaluación orientado a identificar fortalezas, necesidades formativas y áreas de mejora en competencias directivas vinculadas con la neuroeducación. El módulo DNA construye un perfil inicial del gestor educativo para orientar la reflexión individual y servir como punto de partida de la ruta formativa.",
+      intro: "El diagnóstico inicial permite reconocer percepciones, prácticas y necesidades formativas relacionadas con la neuroeducación, el neuroliderazgo y la gestión directiva. Sus respuestas servirán como punto de partida para orientar la ruta de formación.",
       resultLabels: {
         low: "Perfil inicial por fortalecer",
         medium: "Competencias neuroeducativas en desarrollo",
@@ -52,7 +53,7 @@
       questions: [
         {
           id: "diagnosis-1",
-          text: "Ítem preliminar 1: Reconozco la importancia de la neuroeducación en la toma de decisiones directivas.",
+          text: "Ítem 1: Reconozco la importancia de la neuroeducación en la toma de decisiones directivas.",
           options: [
             { label: "Muy en desacuerdo", value: 25 },
             { label: "En desacuerdo", value: 50 },
@@ -62,7 +63,7 @@
         },
         {
           id: "diagnosis-2",
-          text: "Ítem preliminar 2: Utilizo estrategias de autorregulación emocional en situaciones de gestión institucional.",
+          text: "Ítem 2: Utilizo estrategias de autorregulación emocional en situaciones de gestión institucional.",
           options: [
             { label: "Muy en desacuerdo", value: 25 },
             { label: "En desacuerdo", value: 50 },
@@ -72,7 +73,7 @@
         },
         {
           id: "diagnosis-3",
-          text: "Ítem preliminar 3: Promuevo ambientes de trabajo basados en confianza, equidad y comunicación asertiva.",
+          text: "Ítem 3: Promuevo ambientes de trabajo basados en confianza, equidad y comunicación asertiva.",
           options: [
             { label: "Muy en desacuerdo", value: 25 },
             { label: "En desacuerdo", value: 50 },
@@ -104,7 +105,7 @@
           quiz: {
             questions: [
               {
-                text: "Ítem preliminar A.1: ¿Cuál relación resume mejor el enfoque inicial de PLANNE?",
+                text: "Ítem A.1: ¿Cuál relación resume mejor el enfoque inicial de PLANNE?",
                 options: [
                   { label: "La neuroeducación ofrece criterios para comprender aprendizaje, motivación y toma de decisiones en la gestión directiva.", correct: true },
                   { label: "La neuroeducación sustituye la experiencia profesional del gestor educativo.", correct: false },
@@ -112,7 +113,7 @@
                 ]
               },
               {
-                text: "Ítem preliminar A.2: En una gestión directiva con enfoque neuroeducativo, la neuroplasticidad invita a:",
+                text: "Ítem A.2: En una gestión directiva con enfoque neuroeducativo, la neuroplasticidad invita a:",
                 options: [
                   { label: "Reconocer que las prácticas institucionales pueden aprenderse, ajustarse y mejorar con acompañamiento.", correct: true },
                   { label: "Evitar cambios porque las conductas institucionales son fijas.", correct: false },
@@ -139,7 +140,7 @@
           quiz: {
             questions: [
               {
-                text: "Ítem preliminar B.1: ¿Qué práctica refleja mejor el neuroliderazgo en la gestión educativa?",
+                text: "Ítem B.1: ¿Qué práctica refleja mejor el neuroliderazgo en la gestión educativa?",
                 options: [
                   { label: "Promover condiciones de confianza, motivación y autorregulación para tomar mejores decisiones.", correct: true },
                   { label: "Aumentar la presión sobre el equipo para acelerar resultados.", correct: false },
@@ -147,7 +148,7 @@
                 ]
               },
               {
-                text: "Ítem preliminar B.2: La autorregulación directiva es importante porque:",
+                text: "Ítem B.2: La autorregulación directiva es importante porque:",
                 options: [
                   { label: "Ayuda a responder con claridad ante conflictos, incertidumbre o sobrecarga institucional.", correct: true },
                   { label: "Elimina la necesidad de planificar acciones de seguimiento.", correct: false },
@@ -174,7 +175,7 @@
           quiz: {
             questions: [
               {
-                text: "Ítem preliminar C.1: ¿Para qué sirve el modelo SCARF en la gestión educativa?",
+                text: "Ítem C.1: ¿Para qué sirve el modelo SCARF en la gestión educativa?",
                 options: [
                   { label: "Para analizar cómo las decisiones directivas pueden influir en confianza, colaboración y apertura al cambio.", correct: true },
                   { label: "Para clasificar docentes según rendimiento individual.", correct: false },
@@ -182,7 +183,7 @@
                 ]
               },
               {
-                text: "Ítem preliminar C.2: Si una decisión reduce la claridad del equipo sobre los próximos pasos, el dominio más afectado es:",
+                text: "Ítem C.2: Si una decisión reduce la claridad del equipo sobre los próximos pasos, el dominio más afectado es:",
                 options: [
                   { label: "Certeza", correct: true },
                   { label: "Estatus", correct: false },
@@ -209,7 +210,7 @@
           quiz: {
             questions: [
               {
-                text: "Ítem preliminar D.1: ¿Qué caracteriza una buena práctica institucional dentro de PLANNE?",
+                text: "Ítem D.1: ¿Qué caracteriza una buena práctica institucional dentro de PLANNE?",
                 options: [
                   { label: "Una acción documentada, reflexiva y transferible que aporta a la mejora de la gestión educativa.", correct: true },
                   { label: "Una actividad aislada que no requiere evidencia ni seguimiento.", correct: false },
@@ -217,7 +218,7 @@
                 ]
               },
               {
-                text: "Ítem preliminar D.2: La comunidad de práctica aporta a la mejora institucional porque:",
+                text: "Ítem D.2: La comunidad de práctica aporta a la mejora institucional porque:",
                 options: [
                   { label: "Permite compartir aprendizajes, contrastar experiencias y construir evidencia colectiva.", correct: true },
                   { label: "Sustituye la reflexión individual del gestor educativo.", correct: false },

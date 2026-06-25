@@ -38,6 +38,27 @@ body {
   overflow-x: hidden;
 }
 
+.text-justify,
+.rich-text,
+.module-description,
+.hero-copy p:not(.eyebrow),
+.module-heading p:not(.module-number):not(.score-note),
+.info-panel p,
+.info-panel li,
+.stage-card > p,
+.stage-detail-section p,
+.stage-detail-section li,
+.stage-detail-aside p,
+.learning-resource p,
+.notice,
+.site-footer p,
+.guide-popover-text {
+  hyphens: auto;
+  text-align: justify;
+  text-align-last: left;
+  text-justify: inter-word;
+}
+
 .auth-pending .hero,
 .auth-pending .page-shell,
 .auth-pending .site-footer,
@@ -170,6 +191,24 @@ button {
   background: var(--surface);
   box-shadow: 0 6px 16px rgba(31, 45, 52, 0.08);
   color: var(--accent-dark);
+}
+
+.guide-launch-button {
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--accent-blue);
+  font-size: 0.9rem;
+  font-weight: 800;
+  min-height: 38px;
+  padding: 7px 14px;
+  justify-self: start;
+}
+
+.guide-launch-button:hover,
+.guide-launch-button:focus-visible {
+  background: #edf5fb;
+  outline: 3px solid rgba(49, 95, 138, 0.14);
 }
 
 .access-form {
@@ -396,11 +435,19 @@ button {
 .stage-page-active .hero,
 .stage-page-active #diagnostico,
 .stage-page-active #foro,
+.diagnosis-page-active .hero,
+.diagnosis-page-active #ruta,
+.diagnosis-page-active #foro,
 .stage-page-active .site-footer {
   display: none;
 }
 
-.stage-page-active .page-shell {
+.diagnosis-page-active .site-footer {
+  display: none;
+}
+
+.stage-page-active .page-shell,
+.diagnosis-page-active .page-shell {
   max-width: none;
   padding: 0;
 }
@@ -419,6 +466,30 @@ button {
   font-weight: 800;
   margin: 0 0 8px;
   text-transform: uppercase;
+}
+
+.diagnosis-summary-shell {
+  display: block;
+}
+
+.diagnosis-summary-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  display: grid;
+  gap: 14px;
+  max-width: 860px;
+  padding: 18px;
+}
+
+.diagnosis-summary-card .stage-actions {
+  align-items: start;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.diagnosis-summary-card .primary-button {
+  min-width: min(100%, 260px);
 }
 
 .diagnosis-layout {
@@ -542,6 +613,10 @@ button {
   gap: 18px;
   margin-top: 22px;
   padding: 18px;
+}
+
+.diagnosis-detail-view .inline-form {
+  margin-top: 0;
 }
 
 .form-question {
@@ -883,6 +958,43 @@ button {
   text-align: center;
 }
 
+.guide-popover {
+  background: #ffffff;
+  border: 1px solid var(--accent-blue);
+  border-radius: var(--radius);
+  box-shadow: 0 22px 55px rgba(31, 45, 52, 0.2);
+  color: var(--text);
+  display: grid;
+  gap: 14px;
+  max-width: min(420px, calc(100vw - 28px));
+  padding: 16px;
+  position: fixed;
+  z-index: 50;
+}
+
+.guide-popover[hidden] {
+  display: none;
+}
+
+.guide-popover-text {
+  color: var(--muted);
+  margin: 0;
+}
+
+.guide-popover-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.guide-target-highlight {
+  outline: 3px solid rgba(49, 95, 138, 0.45);
+  outline-offset: 6px;
+  position: relative;
+  z-index: 3;
+}
+
 .dev-reset-button {
   background: #fff8ef;
   border: 1px dashed var(--accent-warm);
@@ -960,7 +1072,9 @@ button {
   }
 
   .stage-page-active .page-shell,
+  .diagnosis-page-active .page-shell,
   .stage-page-active #ruta,
+  .diagnosis-page-active #diagnostico,
   .stage-detail-shell,
   .stage-detail-view,
   .stage-detail-content,
@@ -970,7 +1084,8 @@ button {
     width: 100%;
   }
 
-  .stage-page-active #ruta {
+  .stage-page-active #ruta,
+  .diagnosis-page-active #diagnostico {
     max-width: 100vw;
     width: 100vw;
   }
@@ -997,7 +1112,12 @@ button {
   .stage-page-active h3,
   .stage-page-active p,
   .stage-page-active strong,
-  .stage-page-active li {
+  .stage-page-active li,
+  .diagnosis-page-active h2,
+  .diagnosis-page-active h3,
+  .diagnosis-page-active p,
+  .diagnosis-page-active strong,
+  .diagnosis-page-active li {
     overflow-wrap: anywhere;
   }
 
@@ -1030,5 +1150,15 @@ button {
 
   .learning-resource {
     min-height: 140px;
+  }
+
+  .guide-popover {
+    max-height: 52vh;
+    overflow-y: auto;
+  }
+
+  .guide-popover-actions {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 }

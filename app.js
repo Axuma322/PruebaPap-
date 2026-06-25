@@ -18,6 +18,15 @@
     savingQuizStages: {}
   };
   var latestStageFeedback = null;
+  var GUIDE_STORAGE_KEY = "planne:usage-guide-seen";
+  var guideState = {
+    active: false,
+    currentIndex: 0,
+    manual: false,
+    popover: null,
+    highlightedTarget: null,
+    waitingForLogin: false
+  };
 
   function byId(id) {
     return document.getElementById(id);
@@ -162,6 +171,223 @@
 
     notice.hidden = !message;
     notice.textContent = message || "";
+  }
+
+  function readGuideSeen() {
+    try {
+      return window.localStorage.getItem(GUIDE_STORAGE_KEY) === "true";
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function saveGuideSeen() {
+    try {
+      window.localStorage.setItem(GUIDE_STORAGE_KEY, "true");
+    } catch (error) {
+      return false;
+    }
+
+    return true;
+  }
+
+  function getGuideSteps() {
+    return [
+      {
+        target: "#accessScreen .access-card",
+        text: "Para ingresar a PLANNE, escriba su usuario y contraseña. Si aún no tiene cuenta, utilice la opción de registro. El usuario puede ser simple, por ejemplo: gabi01, profe_1 o estudiante-01. La contraseña debe tener al menos 8 caracteres, una mayúscula, una minúscula, un número y un símbolo. Ejemplo: Gabi2003*",
+        button: "Entendido"
+      },
+      {
+        target: "#inicio",
+        text: "Bienvenido a PLANNE. En esta sección encontrará la presentación general de la Plataforma Digital de Neuroliderazgo Educativo y la información principal del proyecto.",
+        button: "Continuar"
+      },
+      {
+        target: "#diagnostico",
+        text: "El Módulo 1 corresponde al Diagnóstico y Autoevaluación Neuroeducativa. Aquí iniciará con una valoración inicial que permitirá identificar fortalezas y áreas de mejora vinculadas con la neuroeducación y la gestión directiva.",
+        button: "Continuar"
+      },
+      {
+        target: "#ruta",
+        text: "El Módulo 2 presenta la Ruta de Formación Adaptativa en Neuroliderazgo. Debe avanzar por las etapas A, B, C y D en orden. Cada etapa incluye materiales, actividades y una mini evaluación. Al aprobar una etapa, se desbloquea la siguiente.",
+        button: "Continuar"
+      },
+      {
+        target: "#foro",
+        text: "El Módulo 3 es la Comunidad de Práctica y Evidencia Institucional. En este espacio puede compartir reflexiones, aprendizajes o buenas prácticas relacionadas con la aplicación de la neuroeducación y el neuroliderazgo en la gestión directiva.",
+        button: "Finalizar guía"
+      }
+    ];
+  }
+
+  function isElementVisible(element) {
+    return Boolean(element && element.getClientRects().length);
+  }
+
+  function clearGuideHighlight() {
+    if (guideState.highlightedTarget) {
+      guideState.highlightedTarget.classList.remove("guide-target-highlight");
+      guideState.highlightedTarget = null;
+    }
+  }
+
+  function closeGuidePopover() {
+    clearGuideHighlight();
+    guideState.active = false;
+
+    if (guideState.popover) {
+      guideState.popover.hidden = true;
+    }
+  }
+
+  function ensureGuidePopover() {
+    var popover;
+    var text;
+    var actions;
+    var nextButton;
+    var skipButton;
+
+    if (guideState.popover) {
+      return guideState.popover;
+    }
+
+    popover = createElement("div", "guide-popover");
+    popover.setAttribute("role", "dialog");
+    popover.setAttribute("aria-live", "polite");
+    popover.setAttribute("aria-label", "Guía de uso de PLANNE");
+    popover.hidden = true;
+
+    text = createElement("p", "guide-popover-text");
+    actions = createElement("div", "guide-popover-actions");
+    skipButton = createElement("button", "ghost-button", "Saltar guía");
+    nextButton = createElement("button", "primary-button", "Continuar");
+
+    skipButton.type = "button";
+    nextButton.type = "button";
+    skipButton.setAttribute("data-guide-skip", "true");
+    nextButton.setAttribute("data-guide-next", "true");
+
+    actions.appendChild(skipButton);
+    actions.appendChild(nextButton);
+    popover.appendChild(text);
+    popover.appendChild(actions);
+    document.body.appendChild(popover);
+
+    skipButton.addEventListener("click", function () {
+      saveGuideSeen();
+      guideState.waitingForLogin = false;
+      guideState.manual = false;
+      closeGuidePopover();
+    });
+
+    nextButton.addEventListener("click", advanceGuide);
+
+    guideState.popover = popover;
+    return popover;
+  }
+
+  function positionGuidePopover() {
+    var popover = guideState.popover;
+
+    if (!popover) {
+      return;
+    }
+
+    popover.style.left = "";
+    popover.style.right = "";
+    popover.style.top = "";
+    popover.style.bottom = "";
+
+    if (window.innerWidth <= 700) {
+      popover.style.left = "14px";
+      popover.style.right = "14px";
+      popover.style.bottom = "14px";
+      return;
+    }
+
+    popover.style.right = "24px";
+    popover.style.bottom = "24px";
+  }
+
+  function showGuideStep(index) {
+    var steps = getGuideSteps();
+    var step = steps[index];
+    var target;
+    var popover;
+
+    if (!step) {
+      finishGuide();
+      return;
+    }
+
+    target = document.querySelector(step.target);
+
+    if (!isElementVisible(target)) {
+      showGuideStep(index + 1);
+      return;
+    }
+
+    guideState.active = true;
+    guideState.currentIndex = index;
+    clearGuideHighlight();
+    guideState.highlightedTarget = target;
+    target.classList.add("guide-target-highlight");
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+
+    popover = ensureGuidePopover();
+    popover.querySelector(".guide-popover-text").textContent = step.text;
+    popover.querySelector("[data-guide-next]").textContent = step.button;
+    popover.hidden = false;
+
+    window.setTimeout(positionGuidePopover, 220);
+  }
+
+  function startGuide(index, manual) {
+    guideState.manual = Boolean(manual);
+    guideState.waitingForLogin = false;
+    showGuideStep(index || 0);
+  }
+
+  function advanceGuide() {
+    if (guideState.currentIndex === 0 && !appState.user && document.body.classList.contains("access-required")) {
+      guideState.waitingForLogin = true;
+      closeGuidePopover();
+      return;
+    }
+
+    showGuideStep(guideState.currentIndex + 1);
+  }
+
+  function finishGuide() {
+    saveGuideSeen();
+    guideState.waitingForLogin = false;
+    guideState.manual = false;
+    closeGuidePopover();
+  }
+
+  function handleGuideAfterSessionState(hasSession) {
+    if (readGuideSeen() || guideState.active) {
+      return;
+    }
+
+    window.setTimeout(function () {
+      if (readGuideSeen()) {
+        return;
+      }
+
+      startGuide(hasSession ? 1 : 0, false);
+    }, hasSession ? 450 : 250);
+  }
+
+  function setupUsageGuide() {
+    document.querySelectorAll("[data-guide-button]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        startGuide(appState.user ? 1 : 0, true);
+      });
+    });
+
+    window.addEventListener("resize", positionGuidePopover);
   }
 
   function isDuplicateRecordError(error) {
@@ -440,37 +666,7 @@
   }
 
   function refreshDiagnosisForCurrentUser() {
-    var result = appState.remoteDataLoaded
-      ? appState.diagnosisResult
-      : storage.getDiagnosisResult();
-    var form = byId("diagnosisForm");
-    var startButton = byId("startDiagnosisButton");
-
-    if (form) {
-      form.hidden = true;
-    }
-
-    if (isDiagnosticCompleted()) {
-      if (result) {
-        renderDiagnosisResult(result);
-      } else {
-        renderDiagnosisNotice("Diagnóstico ya completado", "Esta respuesta ya fue registrada.");
-      }
-
-      if (startButton) {
-        startButton.textContent = "Diagnóstico ya completado";
-        startButton.disabled = true;
-      }
-
-      return;
-    }
-
-    renderDiagnosisResult(result);
-
-    if (startButton) {
-      startButton.disabled = false;
-      startButton.textContent = result ? "Repetir diagnóstico" : "Iniciar diagnóstico";
-    }
+    renderDiagnosis();
   }
 
   function refreshUserScopedContent() {
@@ -488,7 +684,9 @@
       accessScreen.hidden = false;
       document.body.classList.add("access-required");
       document.body.classList.remove("stage-page-active");
+      document.body.classList.remove("diagnosis-page-active");
       updateSessionWidget();
+      handleGuideAfterSessionState(false);
       return;
     }
 
@@ -498,6 +696,7 @@
     updateForumIdentity();
     renderForumComments();
     refreshUserScopedContent();
+    handleGuideAfterSessionState(true);
   }
 
   async function loadSupabaseUserState(user) {
@@ -848,6 +1047,10 @@
   function renderDiagnosisResult(result) {
     var box = byId("diagnosisSavedResult");
 
+    if (!box) {
+      return;
+    }
+
     if (!result) {
       box.hidden = true;
       empty(box);
@@ -863,30 +1066,40 @@
   function renderDiagnosisNotice(title, message) {
     var box = byId("diagnosisSavedResult");
 
+    if (!box) {
+      return;
+    }
+
     empty(box);
     box.hidden = false;
     box.appendChild(createElement("strong", "", title));
     box.appendChild(createElement("span", "", message));
   }
 
-  function renderDiagnosisQuestions() {
-    var list = byId("diagnosisQuestionList");
-    empty(list);
-
-    data.diagnosis.questions.forEach(function (question) {
-      list.appendChild(createElement("li", "", question.text));
-    });
+  function isDiagnosisViewSelected() {
+    return window.location.hash === "#modulo-dna";
   }
 
-  function renderDiagnosisForm() {
-    var form = byId("diagnosisForm");
-    empty(form);
-
-    if (isDiagnosticCompleted()) {
-      renderDiagnosisNotice("Diagnóstico ya completado", "Esta respuesta ya fue registrada.");
-      form.hidden = true;
+  function goToDiagnosisView() {
+    if (window.location.hash === "#modulo-dna") {
+      renderDiagnosis();
       return;
     }
+
+    window.location.hash = "#modulo-dna";
+  }
+
+  function goToModules() {
+    if (window.location.hash === "#diagnostico") {
+      renderDiagnosis();
+      return;
+    }
+
+    window.location.hash = "#diagnostico";
+  }
+
+  function buildDiagnosisForm() {
+    var form = createElement("form", "inline-form diagnosis-form");
 
     data.diagnosis.questions.forEach(function (question) {
       var fieldset = createElement("fieldset", "form-question");
@@ -916,7 +1129,42 @@
     });
 
     form.appendChild(createElement("button", "primary-button", "Enviar diagnóstico"));
-    form.hidden = false;
+    form.addEventListener("submit", handleDiagnosisSubmit);
+    return form;
+  }
+
+  function buildDiagnosisStatusBox(result) {
+    var box = createElement("div", "result-box");
+    box.id = "diagnosisSavedResult";
+
+    if (!result) {
+      box.hidden = true;
+      return box;
+    }
+
+    box.appendChild(createElement("strong", "", "Resultado sincronizado: " + result.score + "%"));
+    box.appendChild(createElement("span", "", result.label + " - " + formatDate(result.createdAt)));
+    return box;
+  }
+
+  function renderDiagnosisSummary(container, result) {
+    var completed = isDiagnosticCompleted();
+    var card = createElement("article", "diagnosis-summary-card");
+    var status = createElement("p", "stage-status", completed ? "Completado" : "Pendiente");
+    var description = createElement("p", "helper-text module-description text-justify", data.diagnosis.intro);
+    var actions = createElement("div", "stage-actions");
+    var startButton = createElement("button", "primary-button", completed ? "Diagnóstico completado" : "Iniciar diagnóstico");
+
+    startButton.type = "button";
+    startButton.disabled = completed;
+    startButton.addEventListener("click", goToDiagnosisView);
+
+    card.appendChild(status);
+    card.appendChild(description);
+    actions.appendChild(startButton);
+    card.appendChild(actions);
+    card.appendChild(buildDiagnosisStatusBox(result));
+    container.appendChild(card);
   }
 
   async function handleDiagnosisSubmit(event) {
@@ -934,8 +1182,8 @@
     }
 
     if (isDiagnosticCompleted()) {
-      renderDiagnosisNotice("Diagnóstico ya completado", "Esta respuesta ya fue registrada.");
-      form.hidden = true;
+      renderDiagnosisNotice("El diagnóstico inicial ya fue completado.", "Esta respuesta ya fue registrada.");
+      renderDiagnosis();
       return;
     }
 
@@ -993,10 +1241,8 @@
         }
 
         renderDiagnosisNotice("Diagnóstico ya completado", "Esta respuesta ya fue registrada.");
-        form.hidden = true;
-        byId("startDiagnosisButton").textContent = "Diagnóstico ya completado";
-        byId("startDiagnosisButton").disabled = true;
         setSyncNotice("Esta respuesta ya fue registrada.");
+        renderDiagnosis();
         return;
       }
 
@@ -1019,20 +1265,80 @@
     appState.diagnosisResult = result;
     storage.saveDiagnosisResult(result);
     appState.isSavingDiagnostic = false;
-    renderDiagnosisResult(result);
-    form.hidden = true;
-    byId("startDiagnosisButton").textContent = "Diagnóstico ya completado";
-    byId("startDiagnosisButton").disabled = true;
+    renderDiagnosis();
+  }
+
+  function renderDiagnosisDetail(container, result) {
+    var detail = createElement("article", "stage-detail-view diagnosis-detail-view");
+    var header = createElement("header", "stage-detail-header");
+    var heading = document.createElement("div");
+    var backButton = createElement("button", "ghost-button stage-back-button", "← Volver a módulos");
+    var label = createElement("p", "module-number", "Módulo 1 - DNA");
+    var title = createElement("h2", "", data.diagnosis.title);
+    var status = createElement("p", "stage-status", isDiagnosticCompleted() ? "Completado" : "Pendiente");
+    var content = createElement("div", "stage-detail-content");
+    var mainColumn = createElement("div", "stage-detail-main");
+    var sideColumn = createElement("aside", "stage-detail-aside");
+    var intro = createElement("p", "text-justify", data.diagnosis.intro);
+    var introSection = buildStageDetailSection("Introducción", intro);
+    var evaluationSection = createElement("section", "stage-detail-section");
+
+    backButton.type = "button";
+    backButton.addEventListener("click", goToModules);
+
+    heading.appendChild(label);
+    heading.appendChild(title);
+    heading.appendChild(status);
+    header.appendChild(backButton);
+    header.appendChild(heading);
+
+    evaluationSection.appendChild(createElement("h3", "", "Ítems de autoevaluación"));
+
+    if (isDiagnosticCompleted()) {
+      evaluationSection.appendChild(buildFeedbackBox(
+        "El diagnóstico inicial ya fue completado.",
+        "Sus respuestas se encuentran registradas y sincronizadas para orientar la ruta de formación."
+      ));
+    } else {
+      evaluationSection.appendChild(buildDiagnosisForm());
+    }
+
+    sideColumn.appendChild(createElement("strong", "", "Resumen del diagnóstico"));
+    sideColumn.appendChild(createElement("p", "", "Usuario: " + (getCurrentUsername() || "Usuario")));
+    sideColumn.appendChild(createElement("p", "", "Estado: " + (isDiagnosticCompleted() ? "Completado" : "Pendiente")));
+    sideColumn.appendChild(createElement("p", "", "Sincronización: Supabase"));
+    sideColumn.appendChild(buildDiagnosisStatusBox(result));
+
+    mainColumn.appendChild(introSection);
+    mainColumn.appendChild(evaluationSection);
+    content.appendChild(mainColumn);
+    content.appendChild(sideColumn);
+    detail.appendChild(header);
+    detail.appendChild(content);
+    container.appendChild(detail);
   }
 
   function renderDiagnosis() {
+    var section = byId("diagnostico");
+    var container = byId("diagnosisContent");
+    var result = appState.diagnosisResult || storage.getDiagnosisResult();
+    var isDetail = isDiagnosisViewSelected();
+
     byId("diagnosisTitle").textContent = data.diagnosis.title;
     byId("diagnosisDescription").textContent = data.diagnosis.description;
-    renderDiagnosisQuestions();
-    renderDiagnosisResult(appState.diagnosisResult || storage.getDiagnosisResult());
+    empty(container);
 
-    byId("startDiagnosisButton").addEventListener("click", renderDiagnosisForm);
-    byId("diagnosisForm").addEventListener("submit", handleDiagnosisSubmit);
+    document.body.classList.toggle("diagnosis-page-active", isDetail);
+    section.classList.toggle("is-stage-view", isDetail);
+    container.className = isDetail ? "stage-detail-shell" : "diagnosis-summary-shell";
+
+    if (isDetail) {
+      renderDiagnosisDetail(container, result);
+      section.scrollIntoView({ block: "start" });
+      return;
+    }
+
+    renderDiagnosisSummary(container, result);
   }
 
   function normalizeProgress(progress) {
@@ -1653,6 +1959,7 @@
     renderDiagnosis();
     renderLearningPath();
     renderForum();
+    setupUsageGuide();
     setupAccessGate().catch(function () {
       resetAuthState();
       applySessionState(false);
@@ -1661,6 +1968,7 @@
     setupDevelopmentResetButton();
     window.addEventListener("hashchange", function () {
       if (appState.user) {
+        renderDiagnosis();
         renderLearningPath();
       }
     });
