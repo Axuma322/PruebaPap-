@@ -473,7 +473,10 @@ button {
 }
 
 .diagnosis-summary-shell {
-  display: block;
+  align-items: start;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 360px);
 }
 
 .diagnosis-summary-card {
@@ -484,6 +487,72 @@ button {
   gap: 14px;
   max-width: 860px;
   padding: 18px;
+}
+
+.diagnosis-results-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 16px;
+}
+
+.diagnosis-results-panel h3,
+.diagnosis-result-attempt h4 {
+  margin: 0;
+}
+
+.diagnosis-result-attempt {
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+.diagnosis-result-attempt p,
+.diagnosis-result-note,
+.diagnosis-variable-result p {
+  color: var(--muted);
+  margin: 0;
+}
+
+.diagnosis-variable-result {
+  display: grid;
+  gap: 5px;
+}
+
+.diagnosis-variable-header {
+  align-items: center;
+  display: flex;
+  font-size: 0.88rem;
+  font-weight: 900;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.diagnosis-variable-bar {
+  background: #d9e3e0;
+  border-radius: 999px;
+  height: 8px;
+  overflow: hidden;
+}
+
+.diagnosis-variable-bar span {
+  background: var(--accent);
+  border-radius: inherit;
+  display: block;
+  height: 100%;
+}
+
+.diagnosis-result-note {
+  background: #eef8f5;
+  border: 1px solid #c9e1da;
+  border-radius: 6px;
+  padding: 10px 12px;
 }
 
 .diagnosis-summary-card .stage-actions {
@@ -1091,6 +1160,51 @@ button {
   padding-left: 20px;
 }
 
+.stage-material-card-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.stage-material-card,
+.stage-activity-card {
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+}
+
+.stage-material-card h4,
+.stage-activity-card h4 {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.stage-material-card p,
+.stage-activity-card p {
+  color: var(--muted);
+  margin: 0;
+}
+
+.material-type {
+  background: #edf5fb;
+  border: 1px solid #c8d9e8;
+  border-radius: 999px;
+  color: var(--accent-blue);
+  font-size: 0.76rem;
+  font-weight: 900;
+  padding: 5px 9px;
+  text-transform: uppercase;
+  width: fit-content;
+}
+
+.material-link {
+  justify-self: start;
+  text-decoration: none;
+}
+
 .learning-resource {
   background: var(--surface-soft);
   border: 1px dashed var(--accent-blue);
@@ -1260,7 +1374,8 @@ button {
 
 @media (max-width: 980px) {
   .hero-grid,
-  .diagnosis-layout {
+  .diagnosis-layout,
+  .diagnosis-summary-shell {
     grid-template-columns: 1fr;
   }
 

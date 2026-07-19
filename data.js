@@ -551,17 +551,41 @@
         {
           id: "C",
           title: "Modelo SCARF aplicado a la gestión educativa",
-          description: "Explora los dominios de estatus, certeza, autonomía, relación y equidad como claves para comprender la respuesta de los equipos institucionales.",
-          fullDescription: "Esta etapa trabaja el modelo SCARF como herramienta para interpretar situaciones de gestión directiva. Permite analizar cómo ciertas decisiones pueden activar o amenazar la disposición de docentes y equipos institucionales hacia el aprendizaje, la colaboración y el cambio.",
-          intro: "Introducción al modelo SCARF como una guía para leer necesidades sociales y emocionales presentes en procesos de cambio institucional.",
-          materials: [
-            "Ficha explicativa del modelo SCARF",
-            "Situación simulada de gestión institucional",
-            "Guía de análisis para toma de decisiones"
+          description: "Explora cómo los dominios de estatus, certeza, autonomía, relación y justicia influyen en la respuesta emocional, cognitiva y colaborativa de los equipos institucionales.",
+          fullDescription: "Esta etapa trabaja el modelo SCARF como herramienta para interpretar situaciones de gestión directiva. Permite analizar cómo ciertas decisiones pueden activar respuestas de amenaza o recompensa en docentes y equipos institucionales, afectando la confianza, la colaboración, la toma de decisiones y la disposición al cambio.",
+          intro: "El modelo SCARF permite observar la gestión educativa desde cinco dominios sociales que influyen en la forma en que los equipos interpretan una decisión, una comunicación o un proceso de cambio.",
+          objectives: [
+            "Reconocer los cinco dominios del modelo SCARF: estatus, certeza, autonomía, relación y justicia.",
+            "Diferenciar respuestas de amenaza y recompensa en la gestión de equipos educativos.",
+            "Aplicar el modelo SCARF al análisis de situaciones reales de gestión directiva.",
+            "Relacionar el neuroliderazgo con el clima institucional, la comunicación y la mejora organizacional."
           ],
-          resourceTitle: "Análisis del modelo SCARF",
-          resourceDescription: "Espacio para desarrollar los dominios de estatus, certeza, autonomía, relación y equidad mediante una ficha de lectura y una situación directiva simulada.",
-          activity: "Simulación de situación directiva: revise una decisión institucional y determine qué dominios SCARF pueden verse fortalecidos o amenazados.",
+          materials: [
+            {
+              title: "Neurociencia aplicada a la gestión de instituciones educativas y neuroliderazgo docente",
+              type: "PDF",
+              description: "Documento de base para comprender la relación entre neurociencia cognitiva, gestión educativa, neuroliderazgo, modelo SET, modelo SCARF, neuromitos, neuroseguridad y recomendaciones estratégicas para la alta dirección.",
+              href: "assets/materiales/etapa-c/neurociencia-gestion-neuroliderazgo.pdf"
+            },
+            {
+              title: "Estructura del neuroliderazgo",
+              type: "PDF",
+              description: "Presentación convertida a PDF sobre los componentes del neuroliderazgo y su relación con la gestión directiva.",
+              href: "assets/materiales/etapa-c/estructura-neuroliderazgo.pdf"
+            },
+            {
+              title: "Plan de Mejora Organizacional",
+              type: "PDF",
+              description: "Documento aplicado para vincular neuroliderazgo, modelo SCARF, competencias del neurolíder, dimensiones de gestión institucional e investigación-acción dentro de un plan de mejora.",
+              href: "assets/materiales/etapa-c/plan-mejora-organizacional.pdf"
+            }
+          ],
+          resourceTitle: "Lectura y análisis SCARF",
+          resourceDescription: "Espacio para trabajar los PDF de la etapa y analizar los dominios de estatus, certeza, autonomía, relación y justicia en situaciones de gestión educativa.",
+          activity: {
+            title: "Análisis de una situación directiva desde SCARF",
+            instruction: "Seleccione una situación institucional reciente o hipotética y analícela desde los cinco dominios del modelo SCARF. Identifique qué elementos podrían activar amenaza o recompensa en el equipo docente y proponga una acción directiva que favorezca confianza, claridad y colaboración."
+          },
           quiz: {
             questions: [
               {

@@ -514,6 +514,127 @@
     return data.diagnosticItems || [];
   }
 
+  function toNumber(value, fallback) {
+    var numberValue = Number(value);
+
+    return Number.isFinite(numberValue) ? numberValue : fallback;
+  }
+
+  function getDiagnosticVariableDefinitions() {
+    var definitions = {};
+
+    getDiagnosticItems().forEach(function (item) {
+      var variable = Number(item.variable);
+
+      if (!definitions[variable]) {
+        definitions[variable] = {
+          variable: variable,
+          title: item.variableTitle || "Variable " + variable,
+          maxScore: 0
+        };
+      }
+
+      definitions[variable].maxScore += 5;
+    });
+
+    return Object.keys(definitions)
+      .sort(function (left, right) {
+        return Number(left) - Number(right);
+      })
+      .map(function (key) {
+        return definitions[key];
+      });
+  }
+
+  function calculateDiagnosticVariableScores(answerItems) {
+    var items = Array.isArray(answerItems) ? answerItems : [];
+
+    return getDiagnosticVariableDefinitions().map(function (definition) {
+      var score = items.reduce(function (total, item) {
+        var selectedScore;
+
+        if (Number(item.variable) !== definition.variable) {
+          return total;
+        }
+
+        selectedScore = item.selectedScore !== undefined ? item.selectedScore : item.score;
+        return total + toNumber(selectedScore, 0);
+      }, 0);
+      var maxScore = definition.maxScore || 50;
+
+      return {
+        variable: definition.variable,
+        title: definition.title,
+        score: score,
+        maxScore: maxScore,
+        percentage: maxScore ? Math.round((score / maxScore) * 100) : 0
+      };
+    });
+  }
+
+  function normalizeDiagnosticVariableScores(variableScores, answerItems) {
+    var existingScores = Array.isArray(variableScores) ? variableScores : [];
+    var canCalculateFromAnswers = Array.isArray(answerItems) && answerItems.length > 0;
+
+    if (canCalculateFromAnswers) {
+      return calculateDiagnosticVariableScores(answerItems);
+    }
+
+    return getDiagnosticVariableDefinitions().map(function (definition) {
+      var existing = existingScores.find(function (scoreItem) {
+        return Number(scoreItem.variable) === definition.variable;
+      }) || {};
+      var maxScore = toNumber(existing.maxScore, definition.maxScore || 50);
+      var score = toNumber(existing.score, 0);
+      var percentage = existing.percentage !== undefined
+        ? toNumber(existing.percentage, maxScore ? Math.round((score / maxScore) * 100) : 0)
+        : (maxScore ? Math.round((score / maxScore) * 100) : 0);
+
+      return {
+        variable: definition.variable,
+        title: existing.title || definition.title,
+        score: score,
+        maxScore: maxScore,
+        percentage: percentage
+      };
+    });
+  }
+
+  function sumDiagnosticAnswerScores(answerItems) {
+    if (!Array.isArray(answerItems)) {
+      return 0;
+    }
+
+    return answerItems.reduce(function (total, item) {
+      var selectedScore = item.selectedScore !== undefined ? item.selectedScore : item.score;
+
+      return total + toNumber(selectedScore, 0);
+    }, 0);
+  }
+
+  function normalizeDiagnosticAnswers(rawAnswers, rowScore) {
+    var answers = rawAnswers && typeof rawAnswers === "object"
+      ? Object.assign({}, rawAnswers)
+      : {};
+    var answerItems = Array.isArray(answers.items) ? answers.items : [];
+    var defaultMaxScore = getDiagnosticItems().length * 5;
+    var totalScore = answers.totalScore !== undefined
+      ? toNumber(answers.totalScore, 0)
+      : toNumber(rowScore, sumDiagnosticAnswerScores(answerItems));
+    var maxScore = answers.maxScore !== undefined
+      ? toNumber(answers.maxScore, defaultMaxScore)
+      : defaultMaxScore;
+
+    answers.totalScore = totalScore;
+    answers.maxScore = maxScore;
+    answers.percentage = answers.percentage !== undefined
+      ? toNumber(answers.percentage, maxScore ? Math.round((totalScore / maxScore) * 100) : 0)
+      : (maxScore ? Math.round((totalScore / maxScore) * 100) : 0);
+    answers.variableScores = normalizeDiagnosticVariableScores(answers.variableScores, answerItems);
+
+    return answers;
+  }
+
   function isStageCompleted(stageId, progress) {
     var currentProgress = progress || getLearningProgressForRender();
     var approvedAttempt = appState.quizAttemptsByStage[stageId];
@@ -558,14 +679,17 @@
   }
 
   function normalizeDiagnosticAttempt(row, index) {
-    var answers = row.answers || {};
+    var answers = normalizeDiagnosticAnswers(row.answers || {}, row.score);
     var attemptType = row.attempt_type || answers.attemptType || (index === 0 ? "initial" : "final");
 
     return {
       id: row.id,
       attemptType: attemptType,
       answers: answers,
-      score: row.score,
+      score: answers.totalScore,
+      maxScore: answers.maxScore,
+      percentage: answers.percentage,
+      variableScores: answers.variableScores,
       createdAt: row.created_at || answers.submittedAt || new Date().toISOString()
     };
   }
@@ -1274,6 +1398,93 @@
     return box;
   }
 
+  function getDiagnosticAttemptTitle(attemptType) {
+    return attemptType === "final" ? "Segundo diagnóstico" : "Diagnóstico inicial";
+  }
+
+  function formatDiagnosticScore(value) {
+    return String(Math.round(toNumber(value, 0)));
+  }
+
+  function buildVariableResultRow(variableScore) {
+    var row = createElement("div", "diagnosis-variable-result");
+    var header = createElement("div", "diagnosis-variable-header");
+    var bar = createElement("div", "diagnosis-variable-bar");
+    var fill = createElement("span", "");
+    var percentage = Math.max(0, Math.min(100, Math.round(toNumber(variableScore.percentage, 0))));
+
+    header.appendChild(createElement("span", "", "Variable " + variableScore.variable));
+    header.appendChild(createElement(
+      "span",
+      "",
+      formatDiagnosticScore(variableScore.score) + " / " + formatDiagnosticScore(variableScore.maxScore) + " · " + percentage + "%"
+    ));
+
+    fill.style.width = percentage + "%";
+    bar.appendChild(fill);
+
+    row.appendChild(header);
+    row.appendChild(createElement("p", "", variableScore.title || ""));
+    row.appendChild(bar);
+
+    return row;
+  }
+
+  function buildDiagnosticAttemptResultBlock(attempt) {
+    var block = createElement("article", "diagnosis-result-attempt");
+    var answers = normalizeDiagnosticAnswers(attempt.answers || {}, attempt.score);
+    var totalScore = formatDiagnosticScore(answers.totalScore);
+    var maxScore = formatDiagnosticScore(answers.maxScore);
+    var percentage = Math.round(toNumber(answers.percentage, 0));
+
+    block.appendChild(createElement("h4", "", getDiagnosticAttemptTitle(attempt.attemptType)));
+    block.appendChild(createElement("p", "", "Fecha: " + formatDate(attempt.createdAt || answers.submittedAt)));
+    block.appendChild(createElement("p", "", "Puntaje total: " + totalScore + " / " + maxScore));
+    block.appendChild(createElement("p", "", "Porcentaje total: " + percentage + "%"));
+
+    answers.variableScores.forEach(function (variableScore) {
+      block.appendChild(buildVariableResultRow(variableScore));
+    });
+
+    return block;
+  }
+
+  function buildDiagnosisResultsPanel() {
+    var panel = createElement("section", "diagnosis-results-panel");
+    var attempts = appState.diagnosticAttempts || [];
+    var initialAttempt = getDiagnosticAttemptByType("initial");
+    var finalAttempt = getDiagnosticAttemptByType("final");
+
+    panel.appendChild(createElement("h3", "", "Resultados del diagnóstico"));
+
+    if (!attempts.length) {
+      panel.appendChild(createElement("p", "empty-state", "Aún no hay resultados registrados."));
+      return panel;
+    }
+
+    if (initialAttempt) {
+      panel.appendChild(buildDiagnosticAttemptResultBlock(initialAttempt));
+    }
+
+    if (finalAttempt) {
+      panel.appendChild(buildDiagnosticAttemptResultBlock(finalAttempt));
+    }
+
+    if (initialAttempt && !finalAttempt) {
+      panel.appendChild(createElement("p", "diagnosis-result-note", "Segundo diagnóstico disponible."));
+    }
+
+    if (initialAttempt && finalAttempt) {
+      panel.appendChild(createElement(
+        "p",
+        "diagnosis-result-note",
+        "Diagnóstico completado. Ya se registraron los dos intentos disponibles."
+      ));
+    }
+
+    return panel;
+  }
+
   function renderDiagnosisSummary(container, result) {
     var nextAttemptType = getNextDiagnosticAttemptType();
     var card = createElement("article", "diagnosis-summary-card");
@@ -1308,8 +1519,8 @@
 
     actions.appendChild(startButton);
     card.appendChild(actions);
-    card.appendChild(buildDiagnosisStatusBox(result));
     container.appendChild(card);
+    container.appendChild(buildDiagnosisResultsPanel());
   }
 
   function buildDiagnosisIntro(container, attemptType) {
@@ -1385,6 +1596,7 @@
     var totalScore = 0;
     var submittedAt = new Date().toISOString();
     var answerItems = [];
+    var variableScores;
     var payload;
     var response;
 
@@ -1425,6 +1637,8 @@
       });
     });
 
+    variableScores = calculateDiagnosticVariableScores(answerItems);
+
     payload = {
       attemptType: session.attemptType,
       managerName: session.managerName,
@@ -1432,6 +1646,7 @@
       totalScore: totalScore,
       maxScore: maxScore,
       percentage: maxScore ? Math.round((totalScore / maxScore) * 100) : 0,
+      variableScores: variableScores,
       submittedAt: submittedAt,
       items: answerItems
     };
@@ -1632,7 +1847,7 @@
     sideColumn.appendChild(createElement("p", "", "Usuario: " + (getCurrentUsername() || "Usuario")));
     sideColumn.appendChild(createElement("p", "", "Estado: " + getDiagnosticStatusText()));
     sideColumn.appendChild(createElement("p", "", "Intentos registrados: " + (appState.diagnosticAttempts || []).length + " de 2"));
-    sideColumn.appendChild(buildDiagnosisStatusBox(result));
+    sideColumn.appendChild(buildDiagnosisResultsPanel());
 
     content.appendChild(mainColumn);
     content.appendChild(sideColumn);
@@ -1733,6 +1948,12 @@
     return stage.quiz || stage.evaluation || { questions: [] };
   }
 
+  function hasStructuredMaterials(stage) {
+    return Array.isArray(stage.materials) && stage.materials.some(function (material) {
+      return material && typeof material === "object";
+    });
+  }
+
   function getStageHash(stage) {
     return "#etapa-" + stage.id.toLowerCase();
   }
@@ -1770,13 +1991,82 @@
   }
 
   function buildStageMaterials(stage) {
-    var list = createElement("ul", "stage-material-list");
+    var materials = Array.isArray(stage.materials) ? stage.materials : [];
+    var list;
 
-    stage.materials.forEach(function (material) {
+    if (hasStructuredMaterials(stage)) {
+      var grid = createElement("div", "stage-material-card-grid");
+
+      materials.forEach(function (material) {
+        var card = createElement("article", "stage-material-card");
+        var type = material.type || "Recurso";
+        var title = material.title || "Material de la etapa";
+        var description = material.description || "";
+        var href = material.href || material.url || "";
+        var link;
+
+        if (typeof material === "string") {
+          card.appendChild(createElement("span", "material-type", "Recurso"));
+          card.appendChild(createElement("h4", "", material));
+          grid.appendChild(card);
+          return;
+        }
+
+        card.appendChild(createElement("span", "material-type", type));
+        card.appendChild(createElement("h4", "", title));
+
+        if (description) {
+          card.appendChild(createElement("p", "", description));
+        }
+
+        if (href) {
+          link = createElement("a", "primary-button material-link", material.buttonLabel || "Ver PDF");
+          link.href = href;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          card.appendChild(link);
+        } else {
+          card.appendChild(createElement("p", "helper-text", "Este recurso se agregará en una siguiente versión."));
+        }
+
+        grid.appendChild(card);
+      });
+
+      return grid;
+    }
+
+    list = createElement("ul", "stage-material-list");
+
+    materials.forEach(function (material) {
       list.appendChild(createElement("li", "", material));
     });
 
     return list;
+  }
+
+  function buildStageObjectives(stage) {
+    var list = createElement("ul", "stage-material-list");
+
+    (stage.objectives || []).forEach(function (objective) {
+      list.appendChild(createElement("li", "", objective));
+    });
+
+    return list;
+  }
+
+  function buildStageActivity(stage) {
+    var activity = stage.activity;
+    var wrapper;
+
+    if (!activity || typeof activity === "string") {
+      return activity || "Actividad aplicada de la etapa.";
+    }
+
+    wrapper = createElement("div", "stage-activity-card");
+    wrapper.appendChild(createElement("h4", "", activity.title || "Actividad aplicada"));
+    wrapper.appendChild(createElement("p", "", activity.instruction || ""));
+
+    return wrapper;
   }
 
   function buildLearningResource(stage) {
@@ -1886,9 +2176,14 @@
 
     mainColumn.appendChild(buildStageDetailSection("Descripción ampliada", getStageFullDescription(stage)));
     mainColumn.appendChild(buildStageDetailSection("Introducción", stage.intro || "Introducción de la etapa."));
+
+    if (Array.isArray(stage.objectives) && stage.objectives.length) {
+      mainColumn.appendChild(buildStageDetailSection("Objetivos de aprendizaje", buildStageObjectives(stage)));
+    }
+
     mainColumn.appendChild(materialSection);
     mainColumn.appendChild(buildStageDetailSection("Recurso de aprendizaje", buildLearningResource(stage)));
-    mainColumn.appendChild(buildStageDetailSection("Actividad", stage.activity || "Actividad aplicada de la etapa."));
+    mainColumn.appendChild(buildStageDetailSection("Actividad", buildStageActivity(stage)));
     mainColumn.appendChild(evaluationSection);
 
     sideColumn.appendChild(createElement("strong", "", "Resumen de avance"));
