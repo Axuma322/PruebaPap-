@@ -10,6 +10,8 @@
     profile: null,
     remoteProgress: null,
     diagnosisResult: null,
+    diagnosticAttempts: [],
+    activeDiagnosisAttempt: null,
     quizScores: {},
     quizAttemptsByStage: {},
     forumPosts: [],
@@ -18,6 +20,7 @@
     savingQuizStages: {}
   };
   var latestStageFeedback = null;
+  var DEV_MODE = false;
   var GUIDE_STORAGE_KEY = "planne:usage-guide-seen";
   var guideState = {
     active: false,
@@ -482,10 +485,33 @@
   }
 
   function isDiagnosticCompleted() {
-    return Boolean(
-      (appState.remoteProgress && normalizeProgressRow(appState.remoteProgress).diagnostic_completed)
-      || appState.diagnosisResult
-    );
+    return Boolean(getDiagnosticAttemptByType("initial"));
+  }
+
+  function getDiagnosticAttemptByType(attemptType) {
+    return (appState.diagnosticAttempts || []).find(function (attempt) {
+      return attempt.attemptType === attemptType;
+    }) || null;
+  }
+
+  function getNextDiagnosticAttemptType() {
+    if (!getDiagnosticAttemptByType("initial")) {
+      return "initial";
+    }
+
+    if (!getDiagnosticAttemptByType("final")) {
+      return "final";
+    }
+
+    return null;
+  }
+
+  function getDiagnosticAttemptLabel(attemptType) {
+    return attemptType === "final" ? "segundo diagnóstico" : "diagnóstico inicial";
+  }
+
+  function getDiagnosticItems() {
+    return data.diagnosticItems || [];
   }
 
   function isStageCompleted(stageId, progress) {
@@ -531,33 +557,44 @@
     return appState.remoteProgress;
   }
 
-  async function loadLatestDiagnosticAnswer() {
+  function normalizeDiagnosticAttempt(row, index) {
+    var answers = row.answers || {};
+    var attemptType = row.attempt_type || answers.attemptType || (index === 0 ? "initial" : "final");
+
+    return {
+      id: row.id,
+      attemptType: attemptType,
+      answers: answers,
+      score: row.score,
+      createdAt: row.created_at || answers.submittedAt || new Date().toISOString()
+    };
+  }
+
+  async function loadDiagnosticAttempts() {
     var response = await supabaseClient
       .from("diagnostic_answers")
-      .select("id, answers, score, created_at")
+      .select("id, attempt_type, answers, score, created_at")
       .eq("user_id", appState.user.id)
-      .order("created_at", { ascending: false })
-      .limit(1);
-    var answerRow;
+      .order("created_at", { ascending: true });
 
     if (response.error) {
       throw response.error;
     }
 
-    answerRow = response.data && response.data[0];
+    appState.diagnosticAttempts = (response.data || []).map(normalizeDiagnosticAttempt);
+    appState.diagnosisResult = appState.diagnosticAttempts[appState.diagnosticAttempts.length - 1] || null;
 
-    if (!answerRow) {
-      appState.diagnosisResult = null;
-      return null;
+    if (appState.diagnosisResult) {
+      storage.saveDiagnosisResult(appState.diagnosisResult);
+    } else {
+      storage.removeUserData("diagnostic");
     }
 
-    appState.diagnosisResult = {
-      score: answerRow.score,
-      label: getDiagnosisLabel(answerRow.score),
-      answers: answerRow.answers || [],
-      createdAt: answerRow.created_at || new Date().toISOString()
-    };
-    storage.saveDiagnosisResult(appState.diagnosisResult);
+    return appState.diagnosticAttempts;
+  }
+
+  async function loadLatestDiagnosticAnswer() {
+    await loadDiagnosticAttempts();
     return appState.diagnosisResult;
   }
 
@@ -652,6 +689,8 @@
     appState.profile = null;
     appState.remoteProgress = null;
     appState.diagnosisResult = null;
+    appState.diagnosticAttempts = [];
+    appState.activeDiagnosisAttempt = null;
     appState.quizScores = {};
     appState.quizAttemptsByStage = {};
     appState.forumPosts = [];
@@ -735,7 +774,7 @@
       storage.saveLearningProgress(remoteProgressToLearningProgress(appState.remoteProgress));
     }
 
-    await loadLatestDiagnosticAnswer();
+    await loadDiagnosticAttempts();
     await loadQuizAttempts();
     storage.saveLearningProgress(remoteProgressToLearningProgress(appState.remoteProgress));
     await loadForumPosts();
@@ -1044,6 +1083,21 @@
     return data.diagnosis.resultLabels.low;
   }
 
+  function getDiagnosticStatusText() {
+    var hasInitial = Boolean(getDiagnosticAttemptByType("initial"));
+    var hasFinal = Boolean(getDiagnosticAttemptByType("final"));
+
+    if (hasInitial && hasFinal) {
+      return "Completado";
+    }
+
+    if (hasInitial) {
+      return "Segundo intento disponible";
+    }
+
+    return "Pendiente";
+  }
+
   function renderDiagnosisResult(result) {
     var box = byId("diagnosisSavedResult");
 
@@ -1059,8 +1113,8 @@
 
     empty(box);
     box.hidden = false;
-    box.appendChild(createElement("strong", "", "Resultado sincronizado: " + result.score + "%"));
-    box.appendChild(createElement("span", "", result.label + " - " + formatDate(result.createdAt)));
+    box.appendChild(createElement("strong", "", "Diagnóstico registrado"));
+    box.appendChild(createElement("span", "", getDiagnosticAttemptLabel(result.attemptType) + " - " + formatDate(result.createdAt)));
   }
 
   function renderDiagnosisNotice(title, message) {
@@ -1098,174 +1152,437 @@
     window.location.hash = "#diagnostico";
   }
 
-  function buildDiagnosisForm() {
-    var form = createElement("form", "inline-form diagnosis-form");
+  function shuffleArray(list) {
+    var shuffled = list.slice();
+    var currentIndex = shuffled.length;
+    var randomIndex;
+    var temporaryValue;
 
-    data.diagnosis.questions.forEach(function (question) {
-      var fieldset = createElement("fieldset", "form-question");
-      var legend = createElement("legend", "", question.text);
-      var options = createElement("div", "option-stack");
+    while (currentIndex !== 0) {
+      randomIndex = Math.floor(Math.random() * currentIndex);
+      currentIndex -= 1;
+      temporaryValue = shuffled[currentIndex];
+      shuffled[currentIndex] = shuffled[randomIndex];
+      shuffled[randomIndex] = temporaryValue;
+    }
 
-      fieldset.appendChild(legend);
+    return shuffled;
+  }
 
-      question.options.forEach(function (option) {
-        var label = document.createElement("label");
-        var input = document.createElement("input");
-        var text = document.createElement("span");
+  function createDiagnosisSession(attemptType, managerName, institution) {
+    var optionOrders = {};
 
-        input.type = "radio";
-        input.name = question.id;
-        input.value = String(option.value);
-        input.required = true;
-        text.textContent = option.label;
-
-        label.appendChild(input);
-        label.appendChild(text);
-        options.appendChild(label);
-      });
-
-      fieldset.appendChild(options);
-      form.appendChild(fieldset);
+    getDiagnosticItems().forEach(function (item) {
+      optionOrders[item.id] = shuffleArray(item.options.map(function (option) {
+        return option.id;
+      }));
     });
 
-    form.appendChild(createElement("button", "primary-button", "Enviar diagnóstico"));
-    form.addEventListener("submit", handleDiagnosisSubmit);
-    return form;
+    return {
+      attemptType: attemptType,
+      managerName: managerName,
+      institution: institution,
+      currentIndex: 0,
+      answers: {},
+      optionOrders: optionOrders,
+      saving: false,
+      feedback: ""
+    };
+  }
+
+  function getVariableLabel(item) {
+    if (item.variable === 1) {
+      return "VARIABLE 1 — COMPETENCIAS ADMINISTRATIVAS VINCULADAS A LA NEUROEDUCACIÓN";
+    }
+
+    if (item.variable === 2) {
+      return "VARIABLE 2 — PRINCIPIOS DE NEUROEDUCACIÓN EVIDENCIADOS";
+    }
+
+    return "VARIABLE 3 — IMPLEMENTACIÓN DE PROCESOS EFICIENTES Y EFICACES EN LA CULTURA PEDAGÓGICA INSTITUCIONAL";
+  }
+
+  function getVariableItemNumber(item) {
+    return item.id - ((item.variable - 1) * 10);
+  }
+
+  function getOrderedOptions(item, session) {
+    var order = session.optionOrders[item.id] || item.options.map(function (option) {
+      return option.id;
+    });
+
+    return order.map(function (optionId) {
+      return item.options.find(function (option) {
+        return option.id === optionId;
+      });
+    }).filter(Boolean);
+  }
+
+  function buildDiagnosisProgress(session) {
+    var progress = createElement("div", "diagnostic-progress", "");
+
+    getDiagnosticItems().forEach(function (item, index) {
+      var segment = document.createElement("button");
+      var answered = Boolean(session.answers[item.id]);
+
+      segment.type = "button";
+      segment.className = "diagnostic-progress-segment variable-" + item.variable;
+      segment.setAttribute("aria-label", "Pregunta " + item.id + " de " + getDiagnosticItems().length);
+      segment.title = "Pregunta " + item.id;
+
+      if (answered) {
+        segment.classList.add("is-answered");
+      }
+
+      if (index === session.currentIndex) {
+        segment.classList.add("is-current");
+      }
+
+      segment.disabled = !answered && index !== session.currentIndex;
+      segment.addEventListener("click", function () {
+        session.currentIndex = index;
+        renderDiagnosis();
+      });
+
+      progress.appendChild(segment);
+    });
+
+    return progress;
+  }
+
+  function hasAllDiagnosisAnswers(session) {
+    return getDiagnosticItems().every(function (item) {
+      return Boolean(session.answers[item.id]);
+    });
   }
 
   function buildDiagnosisStatusBox(result) {
     var box = createElement("div", "result-box");
+    var attempts = appState.diagnosticAttempts || [];
     box.id = "diagnosisSavedResult";
 
-    if (!result) {
+    if (!attempts.length) {
       box.hidden = true;
       return box;
     }
 
-    box.appendChild(createElement("strong", "", "Resultado sincronizado: " + result.score + "%"));
-    box.appendChild(createElement("span", "", result.label + " - " + formatDate(result.createdAt)));
+    attempts.forEach(function (attempt) {
+      var row = createElement("span", "", getDiagnosticAttemptLabel(attempt.attemptType) + " registrado: " + formatDate(attempt.createdAt));
+      box.appendChild(row);
+    });
+
     return box;
   }
 
   function renderDiagnosisSummary(container, result) {
-    var completed = isDiagnosticCompleted();
+    var nextAttemptType = getNextDiagnosticAttemptType();
     var card = createElement("article", "diagnosis-summary-card");
-    var status = createElement("p", "stage-status", completed ? "Completado" : "Pendiente");
+    var status = createElement("p", "stage-status", getDiagnosticStatusText());
     var description = createElement("p", "helper-text module-description text-justify", data.diagnosis.intro);
     var actions = createElement("div", "stage-actions");
-    var startButton = createElement("button", "primary-button", completed ? "Diagnóstico completado" : "Iniciar diagnóstico");
+    var buttonLabel = "Diagnóstico completado";
+    var startButton;
 
+    if (nextAttemptType === "initial") {
+      buttonLabel = "Iniciar diagnóstico inicial";
+    }
+
+    if (nextAttemptType === "final") {
+      buttonLabel = "Realizar segundo diagnóstico";
+    }
+
+    startButton = createElement("button", "primary-button", buttonLabel);
     startButton.type = "button";
-    startButton.disabled = completed;
+    startButton.disabled = !nextAttemptType;
     startButton.addEventListener("click", goToDiagnosisView);
 
     card.appendChild(status);
     card.appendChild(description);
+
+    if (!nextAttemptType) {
+      card.appendChild(buildFeedbackBox(
+        "Diagnóstico completado",
+        "Ya se registraron los dos intentos disponibles."
+      ));
+    }
+
     actions.appendChild(startButton);
     card.appendChild(actions);
     card.appendChild(buildDiagnosisStatusBox(result));
     container.appendChild(card);
   }
 
-  async function handleDiagnosisSubmit(event) {
-    event.preventDefault();
+  function buildDiagnosisIntro(container, attemptType) {
+    var panel = createElement("article", "diagnostic-start-card");
+    var badge = createElement("span", "diagnostic-brand-mark", "P");
+    var meta = createElement("p", "module-number", "PLANNE · MÓDULO 1 — DNA");
+    var title = createElement("h2", "", "Diagnóstico y Autoevaluación Neuroeducativa");
+    var intro = createElement(
+      "p",
+      "text-justify",
+      "Este instrumento identifica su nivel actual en 15 indicadores de gestión neuroeducativa, a partir de 30 situaciones breves de la práctica directiva. No hay respuestas correctas evidentes: cada opción refleja una forma distinta de actuar."
+    );
+    var form = createElement("form", "diagnostic-start-form");
+    var info = createElement("div", "diagnostic-info-box");
+    var list = document.createElement("ul");
+    var submit = createElement("button", "primary-button", "Comenzar diagnóstico →");
 
-    var form = event.currentTarget;
-    var submitButton = form.querySelector("button[type='submit'], button:not([type])");
-    var originalButtonText = submitButton ? submitButton.textContent : "";
-    var formData;
-    var answers = [];
+    [
+      "Son 30 situaciones, organizadas en 3 bloques de 10.",
+      "Elija la opción que más se acerque a lo que realmente haría, no a lo que considera ideal.",
+      "Tarda aproximadamente 12–15 minutos. Puede retroceder para revisar sus respuestas."
+    ].forEach(function (text) {
+      list.appendChild(createElement("li", "", text));
+    });
+
+    form.appendChild(buildTextInput("managerName", "Nombre del gestor educativo", "Ej. Juan Pérez Rodríguez"));
+    form.appendChild(buildTextInput("institution", "Institución", "Ej. Liceo Laboratorio de Liberia"));
+    submit.type = "submit";
+    form.appendChild(submit);
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+
+      var managerName = form.elements.managerName.value.trim();
+      var institution = form.elements.institution.value.trim();
+
+      if (!managerName || !institution) {
+        return;
+      }
+
+      appState.activeDiagnosisAttempt = createDiagnosisSession(attemptType, managerName, institution);
+      renderDiagnosis();
+    });
+
+    info.appendChild(createElement("strong", "", "Antes de comenzar:"));
+    info.appendChild(list);
+
+    panel.appendChild(badge);
+    panel.appendChild(meta);
+    panel.appendChild(title);
+    panel.appendChild(intro);
+    panel.appendChild(form);
+    panel.appendChild(info);
+    container.appendChild(panel);
+  }
+
+  function buildTextInput(name, labelText, placeholder) {
+    var label = document.createElement("label");
+    var input = document.createElement("input");
+
+    label.textContent = labelText;
+    input.name = name;
+    input.type = "text";
+    input.placeholder = placeholder;
+    input.required = true;
+
+    label.appendChild(input);
+    return label;
+  }
+
+  async function submitDiagnosisAttempt(session, submitButton) {
+    var items = getDiagnosticItems();
+    var maxScore = items.length * 5;
     var totalScore = 0;
+    var submittedAt = new Date().toISOString();
+    var answerItems = [];
+    var payload;
+    var response;
 
     if (appState.isSavingDiagnostic) {
       return;
     }
 
-    if (isDiagnosticCompleted()) {
-      renderDiagnosisNotice("El diagnóstico inicial ya fue completado.", "Esta respuesta ya fue registrada.");
+    if (getDiagnosticAttemptByType(session.attemptType)) {
+      session.feedback = "Este intento de diagnóstico ya fue registrado.";
       renderDiagnosis();
       return;
     }
 
+    if (!hasAllDiagnosisAnswers(session)) {
+      session.feedback = "Responda las 30 preguntas antes de enviar el diagnóstico.";
+      renderDiagnosis();
+      return;
+    }
+
+    items.forEach(function (item) {
+      var selectedOptionId = session.answers[item.id];
+      var selectedOption = item.options.find(function (option) {
+        return option.id === selectedOptionId;
+      });
+
+      totalScore += selectedOption ? selectedOption.score : 0;
+      answerItems.push({
+        itemId: item.id,
+        section: item.section,
+        variable: item.variable,
+        variableTitle: item.variableTitle,
+        indicator: item.indicator,
+        prompt: item.prompt,
+        originalOptionId: selectedOption ? selectedOption.id : "",
+        selectedOptionId: selectedOption ? selectedOption.id : "",
+        selectedOptionText: selectedOption ? selectedOption.text : "",
+        selectedScore: selectedOption ? selectedOption.score : 0
+      });
+    });
+
+    payload = {
+      attemptType: session.attemptType,
+      managerName: session.managerName,
+      institution: session.institution,
+      totalScore: totalScore,
+      maxScore: maxScore,
+      percentage: maxScore ? Math.round((totalScore / maxScore) * 100) : 0,
+      submittedAt: submittedAt,
+      items: answerItems
+    };
+
     appState.isSavingDiagnostic = true;
+    session.saving = true;
 
     if (submitButton) {
       submitButton.disabled = true;
       submitButton.textContent = "Guardando...";
     }
 
-    formData = new FormData(form);
-
-    data.diagnosis.questions.forEach(function (question) {
-      var selectedValue = Number(formData.get(question.id));
-      var selectedOption = question.options.find(function (option) {
-        return option.value === selectedValue;
-      });
-
-      totalScore += selectedValue;
-      answers.push({
-        questionId: question.id,
-        question: question.text,
-        answer: selectedOption ? selectedOption.label : "",
-        value: selectedValue
-      });
-    });
-
-    var score = Math.round(totalScore / data.diagnosis.questions.length);
-    var result = {
-      score: score,
-      label: getDiagnosisLabel(score),
-      answers: answers,
-      createdAt: new Date().toISOString()
-    };
-
     try {
-      var diagnosisResponse = await supabaseClient.from("diagnostic_answers").insert({
+      response = await supabaseClient.from("diagnostic_answers").insert({
         user_id: appState.user.id,
-        answers: answers,
-        score: score
+        attempt_type: session.attemptType,
+        answers: payload,
+        score: totalScore
       });
 
-      if (diagnosisResponse.error) {
-        throw diagnosisResponse.error;
+      if (response.error) {
+        throw response.error;
       }
     } catch (error) {
       appState.isSavingDiagnostic = false;
+      session.saving = false;
 
       if (isDuplicateRecordError(error)) {
         try {
-          await loadLatestDiagnosticAnswer();
-          await saveRemoteProgress({ diagnostic_completed: true });
+          await loadDiagnosticAttempts();
         } catch (syncError) {
-          setSyncNotice("Esta respuesta ya fue registrada, pero no se pudo refrescar el progreso remoto.");
+          setSyncNotice("Este intento de diagnóstico ya fue registrado, pero no se pudo refrescar la lista de intentos.");
         }
 
-        renderDiagnosisNotice("Diagnóstico ya completado", "Esta respuesta ya fue registrada.");
-        setSyncNotice("Esta respuesta ya fue registrada.");
+        appState.activeDiagnosisAttempt = null;
+        setSyncNotice("Este intento de diagnóstico ya fue registrado.");
         renderDiagnosis();
         return;
       }
 
       if (submitButton) {
         submitButton.disabled = false;
-        submitButton.textContent = originalButtonText;
+        submitButton.textContent = "Enviar diagnóstico";
       }
 
       setSyncNotice("No se pudo guardar el diagnóstico en Supabase. Revisa la conexión e intenta nuevamente.");
       return;
     }
 
-    try {
+    if (session.attemptType === "initial") {
+      try {
       await saveRemoteProgress({ diagnostic_completed: true });
       setSyncNotice("");
     } catch (error) {
       setSyncNotice("El diagnóstico fue registrado, pero no se pudo actualizar el progreso remoto. Revisa la conexión e intenta recargar.");
     }
+    } else {
+      setSyncNotice("");
+    }
 
-    appState.diagnosisResult = result;
-    storage.saveDiagnosisResult(result);
+    await loadDiagnosticAttempts();
+    storage.saveDiagnosisResult({
+      attemptType: session.attemptType,
+      answers: payload,
+      score: totalScore,
+      createdAt: submittedAt
+    });
     appState.isSavingDiagnostic = false;
+    session.saving = false;
+    session.submitted = true;
+    session.feedback = "Diagnóstico enviado correctamente. Gracias por completar el instrumento.";
     renderDiagnosis();
+  }
+
+  function renderDiagnosisQuestion(container, session) {
+    var items = getDiagnosticItems();
+    var item = items[session.currentIndex];
+    var questionCard = createElement("article", "diagnostic-question-card");
+    var header = createElement("div", "diagnostic-question-header");
+    var variableLabel = createElement("p", "diagnostic-variable-label variable-" + item.variable, getVariableLabel(item));
+    var prompt = createElement("h3", "", item.prompt);
+    var options = createElement("div", "diagnostic-option-list");
+    var footer = createElement("div", "diagnostic-question-actions");
+    var previousButton = createElement("button", "ghost-button", "← Anterior");
+    var nextButton = createElement("button", "primary-button", session.currentIndex === items.length - 1 ? "Enviar diagnóstico" : "Siguiente →");
+    var selectedOptionId = session.answers[item.id];
+
+    header.appendChild(createElement("span", "", "Pregunta " + (session.currentIndex + 1) + " de " + items.length));
+    header.appendChild(createElement("span", "", "Variable " + item.variable + " · ítem " + getVariableItemNumber(item) + " de 10"));
+
+    getOrderedOptions(item, session).forEach(function (option) {
+      var label = createElement("label", "diagnostic-option-card");
+      var input = document.createElement("input");
+      var marker = createElement("span", "diagnostic-option-marker");
+      var text = createElement("span", "diagnostic-option-text", option.text);
+
+      if (selectedOptionId === option.id) {
+        label.classList.add("is-selected");
+      }
+
+      input.type = "radio";
+      input.name = "diagnostic-item-" + item.id;
+      input.value = option.id;
+      input.checked = selectedOptionId === option.id;
+      input.addEventListener("change", function () {
+        session.answers[item.id] = option.id;
+        session.feedback = "";
+        renderDiagnosis();
+      });
+
+      label.appendChild(input);
+      label.appendChild(marker);
+      label.appendChild(text);
+      options.appendChild(label);
+    });
+
+    previousButton.type = "button";
+    previousButton.disabled = session.currentIndex === 0 || session.saving;
+    previousButton.addEventListener("click", function () {
+      session.currentIndex = Math.max(0, session.currentIndex - 1);
+      session.feedback = "";
+      renderDiagnosis();
+    });
+
+    nextButton.type = "button";
+    nextButton.disabled = !selectedOptionId || session.saving;
+    nextButton.addEventListener("click", function () {
+      if (session.currentIndex === items.length - 1) {
+        submitDiagnosisAttempt(session, nextButton);
+        return;
+      }
+
+      session.currentIndex += 1;
+      session.feedback = "";
+      renderDiagnosis();
+    });
+
+    questionCard.appendChild(buildDiagnosisProgress(session));
+    questionCard.appendChild(header);
+    questionCard.appendChild(variableLabel);
+    questionCard.appendChild(prompt);
+    questionCard.appendChild(options);
+
+    if (session.feedback) {
+      questionCard.appendChild(buildFeedbackBox("Aviso", session.feedback));
+    }
+
+    footer.appendChild(previousButton);
+    footer.appendChild(nextButton);
+    questionCard.appendChild(footer);
+    container.appendChild(questionCard);
   }
 
   function renderDiagnosisDetail(container, result) {
@@ -1275,16 +1592,18 @@
     var backButton = createElement("button", "ghost-button stage-back-button", "← Volver a módulos");
     var label = createElement("p", "module-number", "Módulo 1 - DNA");
     var title = createElement("h2", "", data.diagnosis.title);
-    var status = createElement("p", "stage-status", isDiagnosticCompleted() ? "Completado" : "Pendiente");
-    var content = createElement("div", "stage-detail-content");
-    var mainColumn = createElement("div", "stage-detail-main");
+    var status = createElement("p", "stage-status", getDiagnosticStatusText());
+    var content = createElement("div", "diagnostic-detail-content");
+    var mainColumn = createElement("div", "diagnostic-detail-main");
     var sideColumn = createElement("aside", "stage-detail-aside");
-    var intro = createElement("p", "text-justify", data.diagnosis.intro);
-    var introSection = buildStageDetailSection("Introducción", intro);
-    var evaluationSection = createElement("section", "stage-detail-section");
+    var nextAttemptType = getNextDiagnosticAttemptType();
+    var session = appState.activeDiagnosisAttempt;
 
     backButton.type = "button";
-    backButton.addEventListener("click", goToModules);
+    backButton.addEventListener("click", function () {
+      appState.activeDiagnosisAttempt = null;
+      goToModules();
+    });
 
     heading.appendChild(label);
     heading.appendChild(title);
@@ -1292,25 +1611,30 @@
     header.appendChild(backButton);
     header.appendChild(heading);
 
-    evaluationSection.appendChild(createElement("h3", "", "Ítems de autoevaluación"));
-
-    if (isDiagnosticCompleted()) {
-      evaluationSection.appendChild(buildFeedbackBox(
-        "El diagnóstico inicial ya fue completado.",
-        "Sus respuestas se encuentran registradas y sincronizadas para orientar la ruta de formación."
+    if (session && session.submitted) {
+      mainColumn.appendChild(buildFeedbackBox(
+        "Diagnóstico enviado correctamente",
+        "Gracias por completar el instrumento."
       ));
+    } else if (!nextAttemptType) {
+      mainColumn.appendChild(buildFeedbackBox(
+        "Diagnóstico completado",
+        "Ya se registraron los dos intentos disponibles."
+      ));
+    } else if (session && session.attemptType === nextAttemptType) {
+      renderDiagnosisQuestion(mainColumn, session);
     } else {
-      evaluationSection.appendChild(buildDiagnosisForm());
+      appState.activeDiagnosisAttempt = null;
+      buildDiagnosisIntro(mainColumn, nextAttemptType);
     }
 
     sideColumn.appendChild(createElement("strong", "", "Resumen del diagnóstico"));
     sideColumn.appendChild(createElement("p", "", "Usuario: " + (getCurrentUsername() || "Usuario")));
-    sideColumn.appendChild(createElement("p", "", "Estado: " + (isDiagnosticCompleted() ? "Completado" : "Pendiente")));
+    sideColumn.appendChild(createElement("p", "", "Estado: " + getDiagnosticStatusText()));
+    sideColumn.appendChild(createElement("p", "", "Intentos registrados: " + (appState.diagnosticAttempts || []).length + " de 2"));
     sideColumn.appendChild(createElement("p", "", "Sincronización: Supabase"));
     sideColumn.appendChild(buildDiagnosisStatusBox(result));
 
-    mainColumn.appendChild(introSection);
-    mainColumn.appendChild(evaluationSection);
     content.appendChild(mainColumn);
     content.appendChild(sideColumn);
     detail.appendChild(header);
@@ -1911,7 +2235,20 @@
   }
 
   function setupDevelopmentResetButton() {
-    var resetButtons = document.querySelectorAll("[data-reset-test]");
+    var resetButtons;
+
+    if (!DEV_MODE) {
+      return;
+    }
+
+    if (!document.querySelector("[data-reset-test]")) {
+      var resetButton = createElement("button", "dev-reset-button", "Reiniciar progreso de prueba");
+      resetButton.type = "button";
+      resetButton.setAttribute("data-reset-test", "true");
+      document.body.appendChild(resetButton);
+    }
+
+    resetButtons = document.querySelectorAll("[data-reset-test]");
 
     if (!resetButtons.length) {
       return;
