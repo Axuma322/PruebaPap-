@@ -481,13 +481,77 @@
         {
           id: "A",
           title: "Fundamentos de neuroeducación y gestión directiva",
-          description: "Introduce la relación entre neuroeducación, gestión educativa y transformación de la práctica directiva.",
-          fullDescription: "Esta etapa presenta la base conceptual de PLANNE y permite comprender por qué la neuroeducación puede aportar herramientas relevantes para la gestión directiva. Se enfoca en la relación entre aprendizaje, motivación, toma de decisiones y liderazgo institucional.",
-          intro: "Introducción a los principios que conectan aprendizaje, cerebro, liderazgo y gestión escolar. Esta sección permite situar la experiencia formativa desde la realidad de los gestores educativos.",
+          description: "Introduce las bases de la neuroeducación, el funcionamiento cerebral, la diversidad cognitiva y su relación con la gestión educativa.",
+          fullDescription: "Esta etapa presenta fundamentos introductorios para comprender la relación entre neurociencias, aprendizaje, neuroeducación y gestión directiva. Se orienta a reconocer cómo el conocimiento sobre el cerebro, la diversidad de formas de aprender y el diseño de ambientes inclusivos pueden fortalecer la toma de decisiones y la práctica directiva en contextos educativos.",
+          intro: "La etapa A abre la ruta RFAN con una aproximación a las bases cerebrales del aprendizaje, la neuroeducación, la neurodiversidad y el diseño de ambientes compatibles con el bienestar y la inclusión.",
+          objectives: [
+            "Comprender conceptos básicos de neurociencia, cognición, emoción, conducta y aprendizaje.",
+            "Reconocer la neuroeducación como puente entre neurociencias y práctica educativa.",
+            "Identificar la importancia del Diseño Universal para el Aprendizaje en contextos diversos.",
+            "Relacionar neurodiversidad, ambientes de aprendizaje y gestión directiva.",
+            "Valorar la importancia de crear condiciones institucionales compatibles con el aprendizaje y el bienestar."
+          ],
           materials: [
-            "Lectura introductoria sobre neuroeducación y gestión educativa",
-            "Recurso de apoyo sobre neuroplasticidad y aprendizaje directivo",
-            "Actividad reflexiva sobre prácticas directivas actuales"
+            {
+              title: "Guía para el Diseño Universal del Aprendizaje (DUA)",
+              type: "PDF",
+              description: "Material base sobre principios de Diseño Universal para el Aprendizaje, orientado a comprender la importancia de ofrecer múltiples formas de representación, expresión e implicación.",
+              href: "assets/materiales/etapa-a/diseno-universal-aprendizaje.pdf"
+            },
+            {
+              title: "El poder de la neurodiversidad",
+              type: "PDF",
+              description: "Lectura sobre el reconocimiento de diferencias cerebrales, diversidad funcional y potencialidades asociadas a distintas formas de funcionamiento cognitivo.",
+              href: "assets/materiales/etapa-a/poder-neurodiversidad.pdf"
+            },
+            {
+              title: "Introducción a las Neurociencias",
+              type: "PDF",
+              description: "Material introductorio sobre neurociencias, cognición, emoción, conducta, neuroanatomía, neuropsicología y neuroeducación.",
+              href: "assets/materiales/etapa-a/introduccion-neurociencias.pdf"
+            },
+            {
+              title: "Neuroarquitectura: anatomía y fisiología del sistema nervioso",
+              type: "PDF",
+              description: "Presentación visual sobre anatomía, fisiología y organización del sistema nervioso como base para comprender procesos de aprendizaje y conducta.",
+              href: "assets/materiales/etapa-a/neuro-arquitectura.pdf"
+            },
+            {
+              title: "Cartografía del sistema nervioso",
+              type: "PDF",
+              description: "Presentación visual sobre anatomía, fisiología, evolución y complejidad cognitiva del sistema nervioso.",
+              href: "assets/materiales/etapa-a/neuro-cartografia.pdf"
+            },
+            {
+              title: "Neuroeducación - Francisco Mora",
+              type: "PDF",
+              description: "Lectura de referencia sobre neuroeducación, aprendizaje, emoción, curiosidad, memoria, atención y relación entre cerebro y educación.",
+              href: "assets/materiales/etapa-a/neuroeducacion-francisco-mora.pdf"
+            },
+            {
+              title: "Primera infancia: una mirada desde la neuroeducación",
+              type: "PDF",
+              description: "Documento sobre desarrollo cerebral, primera infancia y aportes de la neuroeducación al desarrollo humano.",
+              href: "assets/materiales/etapa-a/primera-infancia-neuroeducacion.pdf"
+            },
+            {
+              title: "Aprendizaje cerebro-compatible",
+              type: "PDF",
+              description: "Artículo sobre prácticas educativas compatibles con el funcionamiento cerebral, emoción, experiencia y aprendizaje significativo.",
+              href: "assets/materiales/etapa-a/aprendizaje-cerebro-compatible.pdf"
+            },
+            {
+              title: "Arquitectura biológica",
+              type: "PDF",
+              description: "Presentación visual sobre desarrollo biológico, embriología y bases estructurales del sistema nervioso.",
+              href: "assets/materiales/etapa-a/arquitectura-biologica.pdf"
+            },
+            {
+              title: "Conocer el cerebro para la excelencia en la educación",
+              type: "PDF",
+              description: "Documento de referencia sobre neurociencia, educación, aprendizaje, memoria, emoción, atención y mejora de prácticas educativas.",
+              href: "assets/materiales/etapa-a/conocer-cerebro-excelencia.pdf"
+            }
           ],
           resourceTitle: "Lectura base",
           resourceDescription: "Espacio para integrar la lectura central de la etapa A, acompañada por recursos visuales o documentos de apoyo sobre neuroeducación aplicada a la gestión directiva.",

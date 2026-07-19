@@ -1255,7 +1255,15 @@
   }
 
   function isDiagnosisViewSelected() {
+    return isDiagnosisAttemptViewSelected() || isDiagnosisResultsViewSelected();
+  }
+
+  function isDiagnosisAttemptViewSelected() {
     return window.location.hash === "#modulo-dna";
+  }
+
+  function isDiagnosisResultsViewSelected() {
+    return window.location.hash === "#resultados-dna";
   }
 
   function goToDiagnosisView() {
@@ -1265,6 +1273,15 @@
     }
 
     window.location.hash = "#modulo-dna";
+  }
+
+  function goToDiagnosisResults() {
+    if (window.location.hash === "#resultados-dna") {
+      renderDiagnosis();
+      return;
+    }
+
+    window.location.hash = "#resultados-dna";
   }
 
   function goToModules() {
@@ -1449,13 +1466,16 @@
     return block;
   }
 
-  function buildDiagnosisResultsPanel() {
+  function buildDiagnosisResultsPanel(options) {
     var panel = createElement("section", "diagnosis-results-panel");
     var attempts = appState.diagnosticAttempts || [];
     var initialAttempt = getDiagnosticAttemptByType("initial");
     var finalAttempt = getDiagnosticAttemptByType("final");
+    var showTitle = !options || options.showTitle !== false;
 
-    panel.appendChild(createElement("h3", "", "Resultados del diagnóstico"));
+    if (showTitle) {
+      panel.appendChild(createElement("h3", "", "Resultados del diagnóstico"));
+    }
 
     if (!attempts.length) {
       panel.appendChild(createElement("p", "empty-state", "Aún no hay resultados registrados."));
@@ -1487,12 +1507,17 @@
 
   function renderDiagnosisSummary(container, result) {
     var nextAttemptType = getNextDiagnosticAttemptType();
+    var attemptsCount = (appState.diagnosticAttempts || []).length;
+    var hasResults = attemptsCount > 0;
     var card = createElement("article", "diagnosis-summary-card");
+    var title = createElement("h3", "", data.diagnosis.title);
     var status = createElement("p", "stage-status", getDiagnosticStatusText());
     var description = createElement("p", "helper-text module-description text-justify", data.diagnosis.intro);
+    var attemptCount = createElement("p", "diagnosis-summary-meta", "Intentos registrados: " + attemptsCount + " de 2");
     var actions = createElement("div", "stage-actions");
     var buttonLabel = "Diagnóstico completado";
-    var startButton;
+    var primaryButton;
+    var resultsButton;
 
     if (nextAttemptType === "initial") {
       buttonLabel = "Iniciar diagnóstico inicial";
@@ -1502,13 +1527,27 @@
       buttonLabel = "Realizar segundo diagnóstico";
     }
 
-    startButton = createElement("button", "primary-button", buttonLabel);
-    startButton.type = "button";
-    startButton.disabled = !nextAttemptType;
-    startButton.addEventListener("click", goToDiagnosisView);
+    if (!nextAttemptType && hasResults) {
+      primaryButton = createElement("button", "primary-button", "Ver resultados");
+      primaryButton.type = "button";
+      primaryButton.addEventListener("click", goToDiagnosisResults);
+    } else {
+      primaryButton = createElement("button", "primary-button", buttonLabel);
+      primaryButton.type = "button";
+      primaryButton.disabled = !nextAttemptType;
+      primaryButton.addEventListener("click", goToDiagnosisView);
+    }
 
+    if (hasResults && nextAttemptType) {
+      resultsButton = createElement("button", "secondary-button", "Ver resultados");
+      resultsButton.type = "button";
+      resultsButton.addEventListener("click", goToDiagnosisResults);
+    }
+
+    card.appendChild(title);
     card.appendChild(status);
     card.appendChild(description);
+    card.appendChild(attemptCount);
 
     if (!nextAttemptType) {
       card.appendChild(buildFeedbackBox(
@@ -1517,10 +1556,14 @@
       ));
     }
 
-    actions.appendChild(startButton);
+    actions.appendChild(primaryButton);
+
+    if (resultsButton) {
+      actions.appendChild(resultsButton);
+    }
+
     card.appendChild(actions);
     container.appendChild(card);
-    container.appendChild(buildDiagnosisResultsPanel());
   }
 
   function buildDiagnosisIntro(container, attemptType) {
@@ -1847,10 +1890,44 @@
     sideColumn.appendChild(createElement("p", "", "Usuario: " + (getCurrentUsername() || "Usuario")));
     sideColumn.appendChild(createElement("p", "", "Estado: " + getDiagnosticStatusText()));
     sideColumn.appendChild(createElement("p", "", "Intentos registrados: " + (appState.diagnosticAttempts || []).length + " de 2"));
-    sideColumn.appendChild(buildDiagnosisResultsPanel());
+
+    if ((appState.diagnosticAttempts || []).length) {
+      var viewResultsButton = createElement("button", "secondary-button", "Ver resultados");
+      viewResultsButton.type = "button";
+      viewResultsButton.addEventListener("click", goToDiagnosisResults);
+      sideColumn.appendChild(viewResultsButton);
+    }
 
     content.appendChild(mainColumn);
     content.appendChild(sideColumn);
+    detail.appendChild(header);
+    detail.appendChild(content);
+    container.appendChild(detail);
+  }
+
+  function renderDiagnosisResultsDetail(container) {
+    var detail = createElement("article", "stage-detail-view diagnosis-detail-view diagnosis-results-view");
+    var header = createElement("header", "stage-detail-header");
+    var heading = document.createElement("div");
+    var backButton = createElement("button", "ghost-button stage-back-button", "← Volver a módulos");
+    var label = createElement("p", "module-number", "Módulo 1 - DNA");
+    var title = createElement("h2", "", "Resultados del diagnóstico");
+    var status = createElement("p", "stage-status", getDiagnosticStatusText());
+    var content = createElement("div", "diagnosis-results-view-content");
+
+    backButton.type = "button";
+    backButton.addEventListener("click", function () {
+      appState.activeDiagnosisAttempt = null;
+      goToModules();
+    });
+
+    heading.appendChild(label);
+    heading.appendChild(title);
+    heading.appendChild(status);
+    header.appendChild(backButton);
+    header.appendChild(heading);
+
+    content.appendChild(buildDiagnosisResultsPanel({ showTitle: false }));
     detail.appendChild(header);
     detail.appendChild(content);
     container.appendChild(detail);
@@ -1861,6 +1938,7 @@
     var container = byId("diagnosisContent");
     var result = appState.diagnosisResult || storage.getDiagnosisResult();
     var isDetail = isDiagnosisViewSelected();
+    var isResultsView = isDiagnosisResultsViewSelected();
 
     byId("diagnosisTitle").textContent = data.diagnosis.title;
     byId("diagnosisDescription").textContent = data.diagnosis.description;
@@ -1869,6 +1947,13 @@
     document.body.classList.toggle("diagnosis-page-active", isDetail);
     section.classList.toggle("is-stage-view", isDetail);
     container.className = isDetail ? "stage-detail-shell" : "diagnosis-summary-shell";
+
+    if (isResultsView) {
+      appState.activeDiagnosisAttempt = null;
+      renderDiagnosisResultsDetail(container);
+      section.scrollIntoView({ block: "start" });
+      return;
+    }
 
     if (isDetail) {
       renderDiagnosisDetail(container, result);
@@ -2069,17 +2154,6 @@
     return wrapper;
   }
 
-  function buildLearningResource(stage) {
-    var resource = createElement("div", "learning-resource");
-    resource.appendChild(createElement("strong", "", stage.resourceTitle || "Lectura base"));
-    resource.appendChild(createElement(
-      "p",
-      "",
-      stage.resourceDescription || "Espacio para integrar un PDF, una presentación, una lectura o un recurso multimedia vinculado con la etapa " + stage.id + "."
-    ));
-    return resource;
-  }
-
   function buildStageDetailSection(title, content) {
     var section = createElement("section", "stage-detail-section");
     section.appendChild(createElement("h3", "", title));
@@ -2156,7 +2230,7 @@
     header.appendChild(backButton);
     header.appendChild(heading);
 
-    materialSection.appendChild(createElement("h3", "", "Materiales"));
+    materialSection.appendChild(createElement("h3", "", "Materiales de la etapa"));
     materialSection.appendChild(buildStageMaterials(stage));
 
     evaluationSection.appendChild(createElement("h3", "", "Mini evaluación"));
@@ -2182,7 +2256,6 @@
     }
 
     mainColumn.appendChild(materialSection);
-    mainColumn.appendChild(buildStageDetailSection("Recurso de aprendizaje", buildLearningResource(stage)));
     mainColumn.appendChild(buildStageDetailSection("Actividad", buildStageActivity(stage)));
     mainColumn.appendChild(evaluationSection);
 
