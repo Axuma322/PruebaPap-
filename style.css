@@ -42,7 +42,7 @@ body {
 .rich-text,
 .module-description,
 .hero-copy p:not(.eyebrow),
-.module-heading p:not(.module-number):not(.score-note),
+.module-heading p:not(.module-number),
 .info-panel p,
 .info-panel li,
 .stage-card > p,
@@ -353,7 +353,7 @@ button {
   margin: 0;
 }
 
-.module-heading p:not(.module-number):not(.score-note) {
+.module-heading p:not(.module-number) {
   color: var(--muted);
   margin: 10px 0 0;
   max-width: 780px;
@@ -899,18 +899,6 @@ button {
   padding: 10px;
 }
 
-.score-note {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  color: var(--accent-dark);
-  display: inline-flex;
-  font-size: 0.9rem;
-  font-weight: 800;
-  margin: 14px 0 0;
-  padding: 6px 12px;
-}
-
 .stage-grid {
   display: grid;
   gap: 14px;
@@ -1319,10 +1307,6 @@ button {
 
   .module-block {
     padding: 18px;
-  }
-
-  .score-note {
-    border-radius: var(--radius);
   }
 
   .stage-page-active .page-shell,

@@ -1632,7 +1632,6 @@
     sideColumn.appendChild(createElement("p", "", "Usuario: " + (getCurrentUsername() || "Usuario")));
     sideColumn.appendChild(createElement("p", "", "Estado: " + getDiagnosticStatusText()));
     sideColumn.appendChild(createElement("p", "", "Intentos registrados: " + (appState.diagnosticAttempts || []).length + " de 2"));
-    sideColumn.appendChild(createElement("p", "", "Sincronización: Supabase"));
     sideColumn.appendChild(buildDiagnosisStatusBox(result));
 
     content.appendChild(mainColumn);
@@ -1894,7 +1893,6 @@
 
     sideColumn.appendChild(createElement("strong", "", "Resumen de avance"));
     sideColumn.appendChild(createElement("p", "", "Usuario: " + (getCurrentUsername() || "Usuario")));
-    sideColumn.appendChild(createElement("p", "", "Nota mínima: " + data.settings.minimumScore + "%"));
     sideColumn.appendChild(createElement("p", "", "Estado actual: " + getStageStatus(stage, progress)));
 
     if (progress.scores[stage.id] !== undefined) {
@@ -2121,7 +2119,6 @@
 
     byId("learningTitle").textContent = data.learningPath.title;
     byId("learningDescription").textContent = data.learningPath.description;
-    byId("minimumScoreNote").textContent = "Nota mínima configurable: " + data.settings.minimumScore + "%";
     empty(container);
 
     if (selectedStage && !selectedStageIsUnlocked) {
