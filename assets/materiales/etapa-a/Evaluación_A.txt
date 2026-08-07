@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evaluación: Fundamentos de Neuroeducación y Gestión Directiva</title>
+<style>
+  :root{
+    --primary:#1f4e5f;
+    --accent:#e07a3f;
+    --bg:#f6f3ee;
+    --card:#ffffff;
+    --text:#2b2b2b;
+    --correct:#2e7d32;
+    --incorrect:#c62828;
+    --border:#ddd6c9;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Georgia', 'Times New Roman', serif;
+    background:var(--bg);
+    color:var(--text);
+    padding:24px 12px 60px;
+  }
+  .container{max-width:820px;margin:0 auto;}
+  header{
+    background:var(--primary);
+    color:#fff;
+    padding:28px 24px;
+    border-radius:10px;
+    margin-bottom:24px;
+  }
+  header h1{margin:0 0 6px;font-size:1.5rem;}
+  header p{margin:0;font-size:0.95rem;opacity:0.9;}
+  .badge{
+    display:inline-block;
+    background:var(--accent);
+    color:#fff;
+    padding:3px 10px;
+    border-radius:20px;
+    font-size:0.75rem;
+    margin-top:10px;
+    font-family:Arial, sans-serif;
+    letter-spacing:0.5px;
+  }
+  .section-label{
+    font-family:Arial, sans-serif;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    font-size:0.75rem;
+    color:var(--accent);
+    font-weight:bold;
+    margin:30px 0 6px;
+    border-bottom:2px solid var(--accent);
+    padding-bottom:4px;
+  }
+  .question{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:18px 20px;
+    margin-bottom:14px;
+  }
+  .question p.qtext{
+    font-weight:bold;
+    margin:0 0 12px;
+    font-size:1.02rem;
+  }
+  .qnum{color:var(--primary);margin-right:6px;}
+  .options label{
+    display:block;
+    padding:8px 10px;
+    border-radius:6px;
+    margin-bottom:6px;
+    cursor:pointer;
+    font-family:Arial, sans-serif;
+    font-size:0.95rem;
+    transition:background 0.15s;
+  }
+  .options label:hover{background:#f0ece2;}
+  .options input{margin-right:8px;}
+  .question.correct{border-left:5px solid var(--correct);}
+  .question.incorrect{border-left:5px solid var(--incorrect);}
+  .feedback{
+    display:none;
+    margin-top:10px;
+    padding:8px 10px;
+    border-radius:6px;
+    font-family:Arial, sans-serif;
+    font-size:0.88rem;
+  }
+  .feedback.show{display:block;}
+  .feedback.correct{background:#e8f5e9;color:var(--correct);}
+  .feedback.incorrect{background:#fdecea;color:var(--incorrect);}
+  #submitBtn{
+    display:block;
+    width:100%;
+    padding:14px;
+    background:var(--primary);
+    color:#fff;
+    border:none;
+    border-radius:8px;
+    font-family:Arial, sans-serif;
+    font-size:1.05rem;
+    font-weight:bold;
+    cursor:pointer;
+    margin-top:24px;
+  }
+  #submitBtn:hover{background:#173d4a;}
+  #resultBox{
+    display:none;
+    margin-top:24px;
+    background:var(--card);
+    border:2px solid var(--primary);
+    border-radius:10px;
+    padding:24px;
+    text-align:center;
+    font-family:Arial, sans-serif;
+  }
+  #resultBox.show{display:block;}
+  #resultBox h2{color:var(--primary);margin-top:0;}
+  .scoreNum{font-size:2.6rem;font-weight:bold;color:var(--accent);}
+  .breakdown{
+    display:flex;
+    justify-content:center;
+    gap:30px;
+    margin-top:16px;
+    flex-wrap:wrap;
+  }
+  .breakdown div{font-size:0.9rem;}
+  .breakdown strong{display:block;font-size:1.3rem;color:var(--primary);}
+  .missing-warning{
+    color:var(--incorrect);
+    font-family:Arial, sans-serif;
+    font-size:0.9rem;
+    text-align:center;
+    margin-top:10px;
+    display:none;
+  }
+  .missing-warning.show{display:block;}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>Evaluación de Submódulo</h1>
+    <p>Fundamentos de Neuroeducación y Gestión Directiva</p>
+    <span class="badge">20 preguntas · Selección única</span>
+  </header>
+
+  <form id="quizForm">
+    <div class="section-label">Bloque I · Fundamentos de Neuroeducación (15 preguntas)</div>
+    <div id="neuroBlock"></div>
+
+    <div class="section-label">Bloque II · Gestión Directiva y Neuroeducación (5 preguntas)</div>
+    <div id="gestionBlock"></div>
+
+    <p class="missing-warning" id="missingWarning">Por favor responde todas las preguntas antes de enviar.</p>
+    <button type="button" id="submitBtn">Enviar y calcular resultado</button>
+  </form>
+
+  <div id="resultBox">
+    <h2>Resultado de la evaluación</h2>
+    <div class="scoreNum" id="scoreNum">0 / 20</div>
+    <p id="scorePercent"></p>
+    <div class="breakdown">
+      <div><strong id="neuroScore">0/15</strong>Neuroeducación</div>
+      <div><strong id="gestionScore">0/5</strong>Gestión Directiva</div>
+    </div>
+    <p id="scoreMessage" style="margin-top:16px;font-style:italic;"></p>
+  </div>
+</div>
+
+<script>
+const neuroQuestions = [
+  {
+    q:"La capacidad del cerebro para reorganizar sus conexiones neuronales en respuesta al aprendizaje y la experiencia se denomina:",
+    options:["Neuroplasticidad","Sinaptogénesis inversa","Homeostasis cognitiva","Lateralización cerebral"],
+    correct:0
+  },
+  {
+    q:"¿Cuál es la principal estructura cerebral implicada en la consolidación de la memoria a largo plazo?",
+    options:["La amígdala","El hipocampo","El cerebelo","El tálamo"],
+    correct:1
+  },
+  {
+    q:"El neurotransmisor asociado principalmente con la motivación, la recompensa y el refuerzo del aprendizaje es:",
+    options:["La serotonina","El GABA","La dopamina","La melatonina"],
+    correct:2
+  },
+  {
+    q:"Un nivel elevado y sostenido de cortisol en el estudiante, producto de estrés crónico, tiende a:",
+    options:["Mejorar la memoria de trabajo","Facilitar la consolidación de aprendizajes complejos","Deteriorar procesos de atención y memoria","No tener efecto sobre el aprendizaje"],
+    correct:2
+  },
+  {
+    q:"El modelo SCARF, utilizado en neuroliderazgo educativo, identifica cinco dominios sociales que activan respuestas de amenaza o recompensa. ¿Cuál de las siguientes NO es una de sus dimensiones?",
+    options:["Estatus (Status)","Certeza (Certainty)","Autonomía (Autonomy)","Memoria (Memory)"],
+    correct:3
+  },
+  {
+    q:"Las funciones ejecutivas (planificación, inhibición, flexibilidad cognitiva y memoria de trabajo) se localizan principalmente en:",
+    options:["El lóbulo occipital","La corteza prefrontal","El bulbo raquídeo","El lóbulo temporal"],
+    correct:1
+  },
+  {
+    q:"¿Cuál de las siguientes afirmaciones corresponde a un neuromito ampliamente difundido pero refutado por la evidencia científica?",
+    options:["El sueño influye en la consolidación de la memoria","Solo usamos el 10% de nuestro cerebro","Las emociones influyen en el aprendizaje","El estrés crónico afecta la atención"],
+    correct:1
+  },
+  {
+    q:"La relación entre emoción y cognición en el aprendizaje sugiere que:",
+    options:["Las emociones son irrelevantes para el procesamiento cognitivo","Las emociones negativas siempre mejoran la retención","Los procesos emocionales y cognitivos están integrados y se influyen mutuamente","Solo las emociones positivas participan en la memoria"],
+    correct:2
+  },
+  {
+    q:"El sueño adecuado en adolescentes es relevante para el aprendizaje principalmente porque:",
+    options:["Aumenta el tamaño del cerebro","Favorece la consolidación de la memoria y la regulación emocional","Elimina por completo la necesidad de repasar contenidos","No tiene relación con el rendimiento académico"],
+    correct:1
+  },
+  {
+    q:"La atención sostenida en el aula se ve favorecida por:",
+    options:["Ambientes con múltiples estímulos simultáneos y sin pausas","Sesiones prolongadas sin variación de actividad","Momentos de variación de estímulos, pausas y relevancia percibida de la tarea","La eliminación total de la carga emocional en la enseñanza"],
+    correct:2
+  },
+  {
+    q:"¿Qué papel cumple la amígdala en los procesos de aprendizaje bajo amenaza percibida?",
+    options:["Bloquea por completo la actividad cerebral","Activa respuestas de defensa que pueden inhibir el razonamiento de la corteza prefrontal","Aumenta directamente la capacidad de memoria de trabajo","No participa en el procesamiento emocional"],
+    correct:1
+  },
+  {
+    q:"El principio neuroeducativo que sostiene que el aprendizaje es más efectivo cuando conecta con conocimientos previos y contextos significativos se relaciona con:",
+    options:["El aprendizaje significativo y la integración de redes neuronales existentes","La memorización mecánica aislada","La eliminación de la retroalimentación","El uso exclusivo de estímulos visuales"],
+    correct:0
+  },
+  {
+    q:"La retroalimentación (feedback) oportuna durante el proceso de aprendizaje, desde la perspectiva neuroeducativa, favorece principalmente:",
+    options:["El aumento del estrés y la ansiedad del estudiante","El ajuste de circuitos neuronales relacionados con la corrección de errores y el refuerzo del aprendizaje","La disminución de la motivación intrínseca","La reducción de la plasticidad cerebral"],
+    correct:1
+  },
+  {
+    q:"La neuroeducación se define como un campo interdisciplinario que integra principalmente:",
+    options:["Neurociencia, psicología y pedagogía","Economía, derecho y estadística","Sociología, historia y geografía","Física, química y biología molecular exclusivamente"],
+    correct:0
+  },
+  {
+    q:"Un ambiente de aprendizaje que reduce la percepción de amenaza social y fomenta la seguridad psicológica del estudiante tiende a:",
+    options:["Disminuir la disponibilidad de recursos cognitivos para aprender","Favorecer la disposición del cerebro hacia el aprendizaje y la exploración","No generar ningún efecto medible","Aumentar la activación defensiva de la amígdala"],
+    correct:1
+  }
+];
+
+const gestionQuestions = [
+  {
+    q:"Un liderazgo directivo informado por la neuroeducación se caracteriza principalmente por:",
+    options:["Ignorar el clima emocional de la institución","Tomar decisiones basadas únicamente en la intuición sin evidencia","Comprender los procesos cerebrales y emocionales del personal y estudiantado para orientar la gestión","Centralizar todas las decisiones sin considerar el bienestar docente"],
+    correct:2
+  },
+  {
+    q:"Aplicar el modelo SCARF en la gestión directiva implica, entre otras cosas, que el director:",
+    options:["Reduzca deliberadamente la autonomía del personal docente","Genere certeza y claridad en los procesos institucionales para disminuir respuestas de amenaza","Elimine toda forma de reconocimiento al personal","Evite dar retroalimentación al equipo docente"],
+    correct:1
+  },
+  {
+    q:"Desde la gestión directiva neuroeducativa, el manejo del cambio institucional debe considerar que:",
+    options:["El cambio no genera ninguna respuesta emocional en el personal","Los procesos de cambio pueden activar percepción de amenaza si no se gestionan con comunicación clara y participación","Los cambios deben imponerse sin explicación para ser más eficientes","La resistencia al cambio no tiene base neurobiológica"],
+    correct:1
+  },
+  {
+    q:"El clima socioemocional institucional, desde la perspectiva de la gestión directiva basada en neurociencia, influye en:",
+    options:["Únicamente en los resultados administrativos, no en el aprendizaje","La disposición cerebral del personal y estudiantado hacia el aprendizaje, la colaboración y el desempeño","Solamente en la infraestructura física del centro educativo","Ningún aspecto medible de la organización"],
+    correct:1
+  },
+  {
+    q:"Una toma de decisiones directiva orientada por principios neuroeducativos prioriza:",
+    options:["Decisiones unilaterales que generen incertidumbre en el equipo","El equilibrio entre evidencia, bienestar emocional del personal y objetivos institucionales","La velocidad de la decisión por encima del impacto humano","La ausencia total de participación del cuerpo docente"],
+    correct:1
+  }
+];
+
+function shuffleArray(arr){
+  const a = arr.slice();
+  for(let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+// Reordena las opciones de cada pregunta y recalcula el índice de la respuesta correcta.
+// Se ejecuta una vez por carga de página, así cada intento presenta un orden distinto.
+function shuffleQuestionOptions(list){
+  return list.map(item=>{
+    const indices = shuffleArray(item.options.map((_, i)=>i));
+    const newOptions = indices.map(i=>item.options[i]);
+    const newCorrect = indices.indexOf(item.correct);
+    return { q:item.q, options:newOptions, correct:newCorrect };
+  });
+}
+
+const neuroQuestionsShuffled = shuffleQuestionOptions(neuroQuestions);
+const gestionQuestionsShuffled = shuffleQuestionOptions(gestionQuestions);
+
+function buildQuestions(list, container, prefix){
+  list.forEach((item, idx)=>{
+    const div = document.createElement('div');
+    div.className = 'question';
+    div.id = prefix + '-' + idx;
+    let optsHtml = '';
+    item.options.forEach((opt, oidx)=>{
+      optsHtml += `<label><input type="radio" name="${prefix}-${idx}" value="${oidx}"> ${opt}</label>`;
+    });
+    div.innerHTML = `<p class="qtext"><span class="qnum">${idx+1}.</span>${item.q}</p>
+      <div class="options">${optsHtml}</div>
+      <div class="feedback" id="fb-${prefix}-${idx}"></div>`;
+    container.appendChild(div);
+  });
+}
+
+buildQuestions(neuroQuestionsShuffled, document.getElementById('neuroBlock'), 'neuro');
+buildQuestions(gestionQuestionsShuffled, document.getElementById('gestionBlock'), 'gestion');
+
+document.getElementById('submitBtn').addEventListener('click', function(){
+  let allAnswered = true;
+  let neuroCorrect = 0;
+  let gestionCorrect = 0;
+
+  neuroQuestionsShuffled.forEach((item, idx)=>{
+    const selected = document.querySelector(`input[name="neuro-${idx}"]:checked`);
+    const qDiv = document.getElementById('neuro-' + idx);
+    const fb = document.getElementById('fb-neuro-' + idx);
+    if(!selected){
+      allAnswered = false;
+      qDiv.classList.remove('correct','incorrect');
+      fb.classList.remove('show');
+      return;
+    }
+    const val = parseInt(selected.value);
+    if(val === item.correct){
+      neuroCorrect++;
+      qDiv.classList.add('correct');
+      qDiv.classList.remove('incorrect');
+      fb.textContent = 'Correcto.';
+      fb.className = 'feedback show correct';
+    } else {
+      qDiv.classList.add('incorrect');
+      qDiv.classList.remove('correct');
+      fb.textContent = 'Incorrecto. Respuesta correcta: ' + item.options[item.correct];
+      fb.className = 'feedback show incorrect';
+    }
+  });
+
+  gestionQuestionsShuffled.forEach((item, idx)=>{
+    const selected = document.querySelector(`input[name="gestion-${idx}"]:checked`);
+    const qDiv = document.getElementById('gestion-' + idx);
+    const fb = document.getElementById('fb-gestion-' + idx);
+    if(!selected){
+      allAnswered = false;
+      qDiv.classList.remove('correct','incorrect');
+      fb.classList.remove('show');
+      return;
+    }
+    const val = parseInt(selected.value);
+    if(val === item.correct){
+      gestionCorrect++;
+      qDiv.classList.add('correct');
+      qDiv.classList.remove('incorrect');
+      fb.textContent = 'Correcto.';
+      fb.className = 'feedback show correct';
+    } else {
+      qDiv.classList.add('incorrect');
+      qDiv.classList.remove('correct');
+      fb.textContent = 'Incorrecto. Respuesta correcta: ' + item.options[item.correct];
+      fb.className = 'feedback show incorrect';
+    }
+  });
+
+  const warning = document.getElementById('missingWarning');
+  if(!allAnswered){
+    warning.classList.add('show');
+    document.getElementById('resultBox').classList.remove('show');
+    return;
+  }
+  warning.classList.remove('show');
+
+  const total = neuroCorrect + gestionCorrect;
+  const percent = Math.round((total/20)*100);
+
+  document.getElementById('scoreNum').textContent = total + ' / 20';
+  document.getElementById('scorePercent').textContent = percent + '% de respuestas correctas';
+  document.getElementById('neuroScore').textContent = neuroCorrect + '/15';
+  document.getElementById('gestionScore').textContent = gestionCorrect + '/5';
+
+  let message = '';
+  if(percent >= 90){
+    message = 'Excelente dominio de los fundamentos de neuroeducación y su vínculo con la gestión directiva.';
+  } else if(percent >= 70){
+    message = 'Buen desempeño. Se recomienda reforzar los temas señalados como incorrectos.';
+  } else if(percent >= 50){
+    message = 'Desempeño moderado. Se sugiere repasar los conceptos fundamentales antes de continuar con el siguiente submódulo.';
+  } else {
+    message = 'Se recomienda revisar nuevamente los contenidos del submódulo antes de avanzar.';
+  }
+  document.getElementById('scoreMessage').textContent = message;
+
+  document.getElementById('resultBox').classList.add('show');
+  document.getElementById('resultBox').scrollIntoView({behavior:'smooth'});
+});
+</script>
+</body>
+</html>
