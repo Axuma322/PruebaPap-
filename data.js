@@ -717,4 +717,144 @@
     },
     impact: "PLANNE busca aportar académica, institucional y socialmente mediante la generación de datos sobre competencias neuroeducativas directivas, el acompañamiento escalable de gestores educativos y el fortalecimiento de culturas pedagógicas más humanas, científicas y contextualizadas."
   };
+
+  // Actualización RFAN basada en los archivos reales de assets/materiales/*.
+  // GitHub Pages no permite escanear carpetas dinámicamente, por eso esta lista se mantiene manualmente.
+  function pdfMaterial(title, href, description) {
+    return {
+      title: title,
+      type: "PDF",
+      description: description,
+      href: href
+    };
+  }
+
+  function buildStageQuiz(stageKey, rows) {
+    return {
+      questions: rows.map(function (row, questionIndex) {
+        return {
+          id: stageKey + String(questionIndex + 1),
+          text: row[0],
+          options: row[1].map(function (optionText, optionIndex) {
+            return {
+              id: String.fromCharCode(97 + optionIndex),
+              text: optionText,
+              correct: optionIndex === row[2]
+            };
+          })
+        };
+      })
+    };
+  }
+
+  var rfanMaterials = {
+    A: [
+      pdfMaterial("Aprendizaje Cerebro", "assets/materiales/etapa-a/Aprendizaje-Cerebro.pdf", "Archivo PDF encontrado en la carpeta de la etapa A."),
+      pdfMaterial("Aprendizaje cerebro-compatible", "assets/materiales/etapa-a/aprendizaje-cerebro-compatible.pdf", "Archivo PDF encontrado en la carpeta de la etapa A."),
+      pdfMaterial("Arquitectura biológica", "assets/materiales/etapa-a/Arquitectura biológica.pdf", "Archivo PDF encontrado en la carpeta de la etapa A."),
+      pdfMaterial("Arquitectura biologica", "assets/materiales/etapa-a/arquitectura-biologica.pdf", "Archivo PDF encontrado en la carpeta de la etapa A."),
+      pdfMaterial("Conocer el cerebro para la excelencia en la educación", "assets/materiales/etapa-a/Conocer_el_cerebro_para_la_excelencia_en-1 (1).pdf", "Archivo PDF encontrado en la carpeta de la etapa A."),
+      pdfMaterial("Conocer el cerebro para la excelencia en la educación", "assets/materiales/etapa-a/Conocer_el_cerebro_para_la_excelencia_en-1.pdf", "Archivo PDF encontrado en la carpeta de la etapa A."),
+      pdfMaterial("Conocer cerebro excelencia", "assets/materiales/etapa-a/conocer-cerebro-excelencia.pdf", "Archivo PDF encontrado en la carpeta de la etapa A."),
+      pdfMaterial("Diseño Universal de Aprendizaje", "assets/materiales/etapa-a/Diseno_Universal_de_Aprendizaje.pdf", "Archivo PDF encontrado en la carpeta de la etapa A."),
+      pdfMaterial("Diseño universal aprendizaje", "assets/materiales/etapa-a/diseno-universal-aprendizaje.pdf", "Archivo PDF encontrado en la carpeta de la etapa A."),
+      pdfMaterial("El poder de la neurodiversidad", "assets/materiales/etapa-a/ElPoderDeLaNeurodiversidad.pdf", "Archivo PDF encontrado en la carpeta de la etapa A."),
+      pdfMaterial("Introducción a las Neurociencias", "assets/materiales/etapa-a/Introduccion_a_las_Neurociencias.pdf", "Archivo PDF encontrado en la carpeta de la etapa A."),
+      pdfMaterial("Introducción neurociencias", "assets/materiales/etapa-a/introduccion-neurociencias.pdf", "Archivo PDF encontrado en la carpeta de la etapa A."),
+      pdfMaterial("Neuro arquitectura", "assets/materiales/etapa-a/Neuro arquitectura.pdf", "Archivo PDF encontrado en la carpeta de la etapa A."),
+      pdfMaterial("Neuro cartografía", "assets/materiales/etapa-a/Neuro cartografía.pdf", "Archivo PDF encontrado en la carpeta de la etapa A."),
+      pdfMaterial("Neuro-arquitectura", "assets/materiales/etapa-a/neuro-arquitectura.pdf", "Archivo PDF encontrado en la carpeta de la etapa A."),
+      pdfMaterial("Neuro-cartografia", "assets/materiales/etapa-a/neuro-cartografia.pdf", "Archivo PDF encontrado en la carpeta de la etapa A."),
+      pdfMaterial("Neuroeducación Francisco Mora", "assets/materiales/etapa-a/Neuroeducacion_Francisco_Mora_1.pdf", "Archivo PDF encontrado en la carpeta de la etapa A."),
+      pdfMaterial("Neuroeducación Francisco Mora", "assets/materiales/etapa-a/neuroeducacion-francisco-mora.pdf", "Archivo PDF encontrado en la carpeta de la etapa A."),
+      pdfMaterial("Poder neurodiversidad", "assets/materiales/etapa-a/poder-neurodiversidad.pdf", "Archivo PDF encontrado en la carpeta de la etapa A."),
+      pdfMaterial("Primera infancia neuroeducación", "assets/materiales/etapa-a/primera-infancia-neuroeducacion.pdf", "Archivo PDF encontrado en la carpeta de la etapa A."),
+      pdfMaterial("Primera infancia y neuroeducación", "assets/materiales/etapa-a/Primera-Infancia-y-Neuroeducacion-version-final-en-espanol.pdf", "Archivo PDF encontrado en la carpeta de la etapa A.")
+    ],
+    B: [],
+    C: [
+      pdfMaterial("Estructura del neuroliderazgo", "assets/materiales/etapa-c/Estructura del neuroliderazgo.pdf", "Archivo PDF encontrado en la carpeta de la etapa C."),
+      pdfMaterial("Estructura neuroliderazgo", "assets/materiales/etapa-c/estructura-neuroliderazgo.pdf", "Archivo PDF encontrado en la carpeta de la etapa C."),
+      pdfMaterial("Neurociencia aplicada al mejoramiento de la gestión de instituciones educativas y neuroliderazgo docente", "assets/materiales/etapa-c/Neurociencia aplicada al mejoramiento de la gestión de instituciones educativas y neuroliderazgo docente.pdf", "Archivo PDF encontrado en la carpeta de la etapa C."),
+      pdfMaterial("Neurociencia gestión neuroliderazgo", "assets/materiales/etapa-c/neurociencia-gestion-neuroliderazgo.pdf", "Archivo PDF encontrado en la carpeta de la etapa C."),
+      pdfMaterial("Plan de Mejora Organizacional", "assets/materiales/etapa-c/Plan de Mejora Organizacional.pdf", "Archivo PDF encontrado en la carpeta de la etapa C."),
+      pdfMaterial("Plan mejora organizacional", "assets/materiales/etapa-c/plan-mejora-organizacional.pdf", "Archivo PDF encontrado en la carpeta de la etapa C.")
+    ],
+    D: [
+      pdfMaterial("Bitácora", "assets/materiales/etapa-d/Bitácora.pdf", "Archivo PDF encontrado en la carpeta de la etapa D."),
+      pdfMaterial("Caso aplicado comunidad evidencia", "assets/materiales/etapa-d/caso_aplicado_comunidad_evidencia.pdf", "Archivo PDF encontrado en la carpeta de la etapa D."),
+      pdfMaterial("Lectura comunidad evidencia", "assets/materiales/etapa-d/lectura_comunidad_evidencia.pdf", "Archivo PDF encontrado en la carpeta de la etapa D.")
+    ]
+  };
+
+  var rfanQuizzes = {
+    A: buildStageQuiz("A", [
+      ["La capacidad del cerebro para reorganizar sus conexiones neuronales en respuesta al aprendizaje y la experiencia se denomina:", ["Neuroplasticidad", "Sinaptogénesis inversa", "Homeostasis cognitiva", "Lateralización cerebral"], 0],
+      ["¿Cuál es la principal estructura cerebral implicada en la consolidación de la memoria a largo plazo?", ["La amígdala", "El hipocampo", "El cerebelo", "El tálamo"], 1],
+      ["El neurotransmisor asociado principalmente con la motivación, la recompensa y el refuerzo del aprendizaje es:", ["La serotonina", "El GABA", "La dopamina", "La melatonina"], 2],
+      ["Un nivel elevado y sostenido de cortisol en el estudiante, producto de estrés crónico, tiende a:", ["Mejorar la memoria de trabajo", "Facilitar la consolidación de aprendizajes complejos", "Deteriorar procesos de atención y memoria", "No tener efecto sobre el aprendizaje"], 2],
+      ["El modelo SCARF, utilizado en neuroliderazgo educativo, identifica cinco dominios sociales que activan respuestas de amenaza o recompensa. ¿Cuál de las siguientes NO es una de sus dimensiones?", ["Estatus (Status)", "Certeza (Certainty)", "Autonomía (Autonomy)", "Memoria (Memory)"], 3],
+      ["Las funciones ejecutivas (planificación, inhibición, flexibilidad cognitiva y memoria de trabajo) se localizan principalmente en:", ["El lóbulo occipital", "La corteza prefrontal", "El bulbo raquídeo", "El lóbulo temporal"], 1],
+      ["¿Cuál de las siguientes afirmaciones corresponde a un neuromito ampliamente difundido pero refutado por la evidencia científica?", ["El sueño influye en la consolidación de la memoria", "Solo usamos el 10% de nuestro cerebro", "Las emociones influyen en el aprendizaje", "El estrés crónico afecta la atención"], 1],
+      ["La relación entre emoción y cognición en el aprendizaje sugiere que:", ["Las emociones son irrelevantes para el procesamiento cognitivo", "Las emociones negativas siempre mejoran la retención", "Los procesos emocionales y cognitivos están integrados y se influyen mutuamente", "Solo las emociones positivas participan en la memoria"], 2],
+      ["El sueño adecuado en adolescentes es relevante para el aprendizaje principalmente porque:", ["Aumenta el tamaño del cerebro", "Favorece la consolidación de la memoria y la regulación emocional", "Elimina por completo la necesidad de repasar contenidos", "No tiene relación con el rendimiento académico"], 1],
+      ["La atención sostenida en el aula se ve favorecida por:", ["Ambientes con múltiples estímulos simultáneos y sin pausas", "Sesiones prolongadas sin variación de actividad", "Momentos de variación de estímulos, pausas y relevancia percibida de la tarea", "La eliminación total de la carga emocional en la enseñanza"], 2],
+      ["¿Qué papel cumple la amígdala en los procesos de aprendizaje bajo amenaza percibida?", ["Bloquea por completo la actividad cerebral", "Activa respuestas de defensa que pueden inhibir el razonamiento de la corteza prefrontal", "Aumenta directamente la capacidad de memoria de trabajo", "No participa en el procesamiento emocional"], 1],
+      ["El principio neuroeducativo que sostiene que el aprendizaje es más efectivo cuando conecta con conocimientos previos y contextos significativos se relaciona con:", ["El aprendizaje significativo y la integración de redes neuronales existentes", "La memorización mecánica aislada", "La eliminación de la retroalimentación", "El uso exclusivo de estímulos visuales"], 0],
+      ["La retroalimentación (feedback) oportuna durante el proceso de aprendizaje, desde la perspectiva neuroeducativa, favorece principalmente:", ["El aumento del estrés y la ansiedad del estudiante", "El ajuste de circuitos neuronales relacionados con la corrección de errores y el refuerzo del aprendizaje", "La disminución de la motivación intrínseca", "La reducción de la plasticidad cerebral"], 1],
+      ["La neuroeducación se define como un campo interdisciplinario que integra principalmente:", ["Neurociencia, psicología y pedagogía", "Economía, derecho y estadística", "Sociología, historia y geografía", "Física, química y biología molecular exclusivamente"], 0],
+      ["Un ambiente de aprendizaje que reduce la percepción de amenaza social y fomenta la seguridad psicológica del estudiante tiende a:", ["Disminuir la disponibilidad de recursos cognitivos para aprender", "Favorecer la disposición del cerebro hacia el aprendizaje y la exploración", "No generar ningún efecto medible", "Aumentar la activación defensiva de la amígdala"], 1],
+      ["Un liderazgo directivo informado por la neuroeducación se caracteriza principalmente por:", ["Ignorar el clima emocional de la institución", "Tomar decisiones basadas únicamente en la intuición sin evidencia", "Comprender los procesos cerebrales y emocionales del personal y estudiantado para orientar la gestión", "Centralizar todas las decisiones sin considerar el bienestar docente"], 2],
+      ["Aplicar el modelo SCARF en la gestión directiva implica, entre otras cosas, que el director:", ["Reduzca deliberadamente la autonomía del personal docente", "Genere certeza y claridad en los procesos institucionales para disminuir respuestas de amenaza", "Elimine toda forma de reconocimiento al personal", "Evite dar retroalimentación al equipo docente"], 1],
+      ["Desde la gestión directiva neuroeducativa, el manejo del cambio institucional debe considerar que:", ["El cambio no genera ninguna respuesta emocional en el personal", "Los procesos de cambio pueden activar percepción de amenaza si no se gestionan con comunicación clara y participación", "Los cambios deben imponerse sin explicación para ser más eficientes", "La resistencia al cambio no tiene base neurobiológica"], 1],
+      ["El clima socioemocional institucional, desde la perspectiva de la gestión directiva basada en neurociencia, influye en:", ["Únicamente en los resultados administrativos, no en el aprendizaje", "La disposición cerebral del personal y estudiantado hacia el aprendizaje, la colaboración y el desempeño", "Solamente en la infraestructura física del centro educativo", "Ningún aspecto medible de la organización"], 1],
+      ["Una toma de decisiones directiva orientada por principios neuroeducativos prioriza:", ["Decisiones unilaterales que generen incertidumbre en el equipo", "El equilibrio entre evidencia, bienestar emocional del personal y objetivos institucionales", "La velocidad de la decisión por encima del impacto humano", "La ausencia total de participación del cuerpo docente"], 1]
+    ]),
+    B: buildStageQuiz("B", [
+      ["El neuroliderazgo se define como un enfoque que aplica los hallazgos de la neurociencia para:", ["Sustituir por completo la experiencia y el criterio del líder", "Comprender y mejorar la manera en que las personas piensan, deciden y se relacionan en contextos de liderazgo", "Eliminar la necesidad de comunicación entre líder y equipo", "Centrarse únicamente en indicadores financieros de la organización"], 1],
+      ["Según el modelo SCARF, un líder que otorga reconocimiento público al desempeño de un colaborador está activando principalmente el dominio de:", ["Certeza (Certainty)", "Estatus (Status)", "Relación (Relatedness)", "Justicia (Fairness)"], 1],
+      ["Un líder que comunica con claridad los criterios de evaluación y los pasos de un proceso institucional está favoreciendo el dominio de:", ["Autonomía (Autonomy)", "Certeza (Certainty)", "Estatus (Status)", "Relación (Relatedness)"], 1],
+      ["Desde el neuroliderazgo, la percepción de trato injusto o inequitativo por parte del equipo tiende a activar en el cerebro una respuesta similar a la generada por:", ["Una recompensa placentera", "Una amenaza física o social", "Un estado de relajación profunda", "Ningún tipo de respuesta emocional"], 1],
+      ["Un liderazgo que promueve espacios de decisión y participación del equipo docente en la construcción de acuerdos institucionales está fortaleciendo principalmente el dominio de:", ["Autonomía (Autonomy)", "Estatus (Status)", "Certeza (Certainty)", "Amenaza (Threat)"], 0],
+      ["La motivación que surge del interés genuino, el disfrute o el sentido personal de una actividad, sin depender de recompensas externas, se denomina:", ["Motivación extrínseca", "Motivación intrínseca", "Motivación situacional", "Motivación normativa"], 1],
+      ["La autorregulación, desde la perspectiva neuroeducativa, se refiere principalmente a la capacidad de:", ["Reaccionar de forma automática ante cualquier estímulo emocional", "Monitorear y ajustar los propios pensamientos, emociones y conductas en función de una meta", "Suprimir por completo toda expresión emocional", "Depender exclusivamente de la supervisión externa para actuar"], 1],
+      ["La corteza prefrontal cumple un papel central en la autorregulación porque permite principalmente:", ["La inhibición de impulsos y la planificación de la conducta orientada a metas", "El almacenamiento permanente de recuerdos sensoriales", "La regulación exclusiva del ritmo cardíaco", "El procesamiento visual básico"], 0],
+      ["Un colaborador con alta capacidad de autorregulación emocional, ante una situación de estrés institucional, tenderá a:", ["Reaccionar de manera impulsiva sin evaluar consecuencias", "Evitar por completo la situación sin buscar soluciones", "Reconocer su estado emocional y ajustar su respuesta de forma adaptativa", "Delegar siempre la gestión emocional en otra persona"], 2],
+      ["Desde el punto de vista neuroeducativo, ofrecer metas claras, retroalimentación oportuna y cierto grado de autonomía en las tareas favorece principalmente:", ["La disminución total de la motivación intrínseca", "El fortalecimiento de la motivación intrínseca y la autorregulación", "La dependencia exclusiva de la motivación extrínseca", "La eliminación de la necesidad de retroalimentación futura"], 1]
+    ]),
+    C: buildStageQuiz("C", [
+      ["El modelo SCARF, aplicado a la gestión educativa, identifica cinco dominios que influyen en la respuesta social del cerebro ante el liderazgo. ¿Cuáles son?", ["Estatus, Certeza, Autonomía, Relación y Justicia", "Sueño, Cognición, Atención, Rendimiento y Frustración", "Salario, Currículo, Aula, Recreo y Familia", "Sistema, Currícula, Administración, Recursos y Feedback"], 0],
+      ["Cuando un director reconoce públicamente en una reunión de personal el logro académico alcanzado por un docente, está activando principalmente el dominio de:", ["Certeza (Certainty)", "Estatus (Status)", "Autonomía (Autonomy)", "Relación (Relatedness)"], 1],
+      ["Un cambio curricular anunciado de forma repentina y sin explicación previa al cuerpo docente tiende a generar una respuesta de amenaza asociada principalmente al dominio de:", ["Certeza (Certainty)", "Justicia (Fairness)", "Relación (Relatedness)", "Estatus (Status)"], 0],
+      ["Permitir que los docentes decidan la metodología específica para abordar un contenido, dentro de los lineamientos institucionales, fortalece principalmente el dominio de:", ["Estatus (Status)", "Autonomía (Autonomy)", "Certeza (Certainty)", "Justicia (Fairness)"], 1],
+      ["La construcción de espacios de confianza, colaboración y pertenencia entre el personal docente y la dirección corresponde principalmente al dominio de:", ["Relación (Relatedness)", "Autonomía (Autonomy)", "Justicia (Fairness)", "Certeza (Certainty)"], 0],
+      ["La percepción de un docente de que los criterios de evaluación de desempeño se aplican de manera desigual entre compañeros activa principalmente una respuesta de amenaza en el dominio de:", ["Estatus (Status)", "Certeza (Certainty)", "Justicia (Fairness)", "Autonomía (Autonomy)"], 2],
+      ["Desde el modelo SCARF, una amenaza social percibida por el personal docente (por ejemplo, ante una crítica pública) puede generar una respuesta neurológica similar a la producida por:", ["Una recompensa económica inmediata", "Un peligro físico", "Un estado de relajación profunda", "Ninguna respuesta significativa"], 1],
+      ["Un director que comunica con anticipación el cronograma de evaluaciones institucionales y los pasos de un proceso de acreditación está fortaleciendo principalmente el dominio de:", ["Certeza (Certainty)", "Estatus (Status)", "Relación (Relatedness)", "Autonomía (Autonomy)"], 0],
+      ["Aplicar el dominio de Estatus de forma constructiva en la gestión educativa implica, entre otras acciones:", ["Comparar públicamente el desempeño de los docentes entre sí de forma competitiva", "Reconocer logros individuales y crear oportunidades de crecimiento profesional visibles", "Evitar cualquier forma de reconocimiento para no generar jerarquías", "Centralizar todo el mérito institucional en la figura del director"], 1],
+      ["La aplicación integral del modelo SCARF en la gestión educativa busca, en última instancia:", ["Reducir la interacción entre el equipo directivo y el personal docente", "Minimizar las respuestas de amenaza social y maximizar las de recompensa para favorecer el desempeño, el bienestar y la colaboración institucional", "Eliminar por completo la jerarquía organizacional", "Sustituir la evaluación docente por procesos exclusivamente automatizados"], 1]
+    ]),
+    D: buildStageQuiz("D", [
+      ["Una comunidad profesional de aprendizaje al interior de un centro educativo se caracteriza principalmente por:", ["Docentes que trabajan de forma aislada sin compartir prácticas", "Un grupo de educadores que colabora de manera sostenida, comparte evidencia y reflexiona sobre su práctica para mejorar el aprendizaje", "Reuniones administrativas centradas exclusivamente en trámites", "La ausencia de objetivos comunes entre el personal docente"], 1],
+      ["La participación activa de familias y comunidad en la vida institucional, desde una gestión con enfoque neuroeducativo, contribuye principalmente a:", ["Fortalecer redes de apoyo, confianza y sentido de pertenencia que favorecen el bienestar y el aprendizaje", "Aumentar la carga administrativa sin ningún beneficio pedagógico", "Sustituir el rol formativo del cuerpo docente", "Reducir la autonomía institucional del centro educativo"], 0],
+      ["Un director que promueve el liderazgo distribuido, involucrando a docentes, familias y estudiantes en la toma de decisiones institucionales, está fortaleciendo principalmente:", ["Un modelo de gestión centralizado y jerárquico", "El sentido de comunidad y corresponsabilidad institucional", "La dependencia exclusiva de la autoridad directiva", "El aislamiento de los distintos actores educativos"], 1],
+      ["Ante un caso de baja participación de las familias en actividades institucionales, una buena práctica orientada a fortalecer la comunidad educativa sería:", ["Eliminar los espacios de participación familiar por considerarlos poco efectivos", "Sancionar a las familias que no asisten a las convocatorias", "Diversificar los canales de comunicación y crear espacios de participación significativos y accesibles", "Delegar la comunicación con las familias únicamente al personal administrativo"], 2],
+      ["La construcción de una cultura institucional colaborativa, con relaciones de confianza entre docentes, dirección, estudiantes y familias, favorece principalmente:", ["Un clima socioemocional que facilita el aprendizaje y reduce la percepción de amenaza social", "El aumento de la competitividad individual entre docentes", "La disminución de la cohesión institucional", "La eliminación de instancias de retroalimentación"], 0],
+      ["La toma de decisiones institucionales basada en evidencia implica principalmente:", ["Decidir exclusivamente con base en la intuición del equipo directivo", "Recopilar, analizar e interpretar datos institucionales confiables para orientar la acción y la mejora", "Ignorar los resultados de los procesos de evaluación institucional", "Aplicar siempre las mismas estrategias sin revisar sus resultados"], 1],
+      ["Un ciclo de mejora continua institucional (por ejemplo, Planificar-Hacer-Verificar-Actuar) tiene como propósito principal:", ["Implementar cambios de manera permanente sin revisión posterior", "Generar un proceso cíclico de planificación, implementación, evaluación y ajuste de las prácticas institucionales", "Evitar cualquier tipo de cambio en la gestión educativa", "Centrar la mejora únicamente en aspectos de infraestructura"], 1],
+      ["Ante resultados de una autoevaluación institucional que evidencian debilidades en la comunicación entre niveles educativos, una acción de mejora continua coherente sería:", ["Ignorar los resultados por considerarlos poco relevantes", "Diseñar e implementar un plan de acción específico, con seguimiento y evaluación de su impacto", "Aplazar cualquier intervención hasta el siguiente ciclo lectivo sin analizar causas", "Atribuir el problema únicamente a factores externos a la institución"], 1],
+      ["La sistematización de buenas prácticas institucionales (documentarlas, analizarlas y compartirlas) tiene como principal beneficio:", ["Aumentar la carga de trabajo sin ningún valor agregado", "Facilitar el aprendizaje organizacional y la réplica de estrategias efectivas en otros contextos institucionales", "Reducir la posibilidad de mejora futura", "Sustituir la necesidad de evaluación institucional"], 1],
+      ["Para que un plan de mejora institucional sea sostenible en el tiempo, es fundamental que:", ["Dependa exclusivamente de la gestión de una sola persona", "Se revise una única vez al inicio del proceso sin ajustes posteriores", "Se institucionalice mediante seguimiento continuo, evidencia y participación de la comunidad educativa", "Se mantenga en secreto para evitar resistencias del personal"], 2]
+    ])
+  };
+
+  window.APP_DATA.learningPath.stages.forEach(function (stage) {
+    if (rfanMaterials[stage.id]) {
+      stage.materials = rfanMaterials[stage.id];
+    }
+
+    if (rfanQuizzes[stage.id]) {
+      stage.quiz = rfanQuizzes[stage.id];
+    }
+  });
 })();

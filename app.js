@@ -14,6 +14,7 @@
     activeDiagnosisAttempt: null,
     quizScores: {},
     quizAttemptsByStage: {},
+    quizSessions: {},
     forumPosts: [],
     remoteDataLoaded: false,
     isSavingDiagnostic: false,
@@ -817,6 +818,7 @@
     appState.activeDiagnosisAttempt = null;
     appState.quizScores = {};
     appState.quizAttemptsByStage = {};
+    appState.quizSessions = {};
     appState.forumPosts = [];
     appState.remoteDataLoaded = false;
     appState.isSavingDiagnostic = false;
@@ -2013,6 +2015,66 @@
     return box;
   }
 
+  function buildQuizResultCard(feedback) {
+    var box = createElement("div", "quiz-result-card " + (feedback.passed ? "is-passed" : "is-failed"));
+    var actions = createElement("div", "quiz-result-actions");
+    var primaryButton;
+    var secondaryButton;
+
+    box.appendChild(createElement("h4", "", feedback.title));
+    box.appendChild(createElement("p", "", feedback.message));
+
+    if (feedback.score !== undefined) {
+      box.appendChild(createElement("strong", "quiz-result-score", "Resultado obtenido: " + feedback.score + "%"));
+      box.appendChild(createElement("span", "", "Nota mínima requerida: " + data.settings.minimumScore + "%"));
+    }
+
+    if (feedback.passed) {
+      primaryButton = createElement("button", "primary-button", "Continuar");
+      primaryButton.type = "button";
+      primaryButton.addEventListener("click", goToRouteMap);
+
+      secondaryButton = createElement("button", "secondary-button", "Volver a la ruta");
+      secondaryButton.type = "button";
+      secondaryButton.addEventListener("click", goToRouteMap);
+    } else {
+      primaryButton = createElement("button", "primary-button", "Reintentar evaluación");
+      primaryButton.type = "button";
+      primaryButton.addEventListener("click", function () {
+        latestStageFeedback = null;
+        resetQuizSession(feedback.stageId);
+        renderLearningPath();
+      });
+
+      secondaryButton = createElement("button", "secondary-button", "Volver a materiales");
+      secondaryButton.type = "button";
+      secondaryButton.addEventListener("click", function () {
+        var materialSection = document.querySelector(".stage-material-section");
+
+        if (materialSection) {
+          materialSection.scrollIntoView({ block: "start", behavior: "smooth" });
+        }
+      });
+    }
+
+    actions.appendChild(primaryButton);
+    actions.appendChild(secondaryButton);
+    box.appendChild(actions);
+    return box;
+  }
+
+  function buildStageFeedback(stageId) {
+    if (!latestStageFeedback || latestStageFeedback.stageId !== stageId) {
+      return null;
+    }
+
+    if (latestStageFeedback.type === "quiz-result") {
+      return buildQuizResultCard(latestStageFeedback);
+    }
+
+    return buildFeedbackBox(latestStageFeedback.title, latestStageFeedback.message);
+  }
+
   function getStageStatus(stage, progress) {
     if (!progress.unlockedStages.includes(stage.id)) {
       return "Bloqueada";
@@ -2031,6 +2093,60 @@
 
   function getStageQuiz(stage) {
     return stage.quiz || stage.evaluation || { questions: [] };
+  }
+
+  function getQuizQuestionText(question) {
+    return question.text || question.prompt || question.q || "";
+  }
+
+  function getQuizQuestionId(stage, question, questionIndex) {
+    return question.id || (stage.id + String(questionIndex + 1));
+  }
+
+  function getQuizOptionId(option, optionIndex) {
+    return option.id || String.fromCharCode(97 + optionIndex);
+  }
+
+  function getQuizOptionText(option) {
+    return option.text || option.label || "";
+  }
+
+  function normalizeQuizOptions(question) {
+    return (question.options || []).map(function (option, optionIndex) {
+      return {
+        id: getQuizOptionId(option, optionIndex),
+        text: getQuizOptionText(option),
+        correct: Boolean(option.correct)
+      };
+    });
+  }
+
+  function createQuizSession(stage) {
+    var quiz = getStageQuiz(stage);
+    var session = {
+      stageId: stage.id,
+      optionOrders: {}
+    };
+
+    (quiz.questions || []).forEach(function (question, questionIndex) {
+      var questionId = getQuizQuestionId(stage, question, questionIndex);
+      var optionIds = normalizeQuizOptions(question).map(function (option) {
+        return option.id;
+      });
+
+      session.optionOrders[questionId] = shuffleArray(optionIds);
+    });
+
+    appState.quizSessions[stage.id] = session;
+    return session;
+  }
+
+  function getQuizSession(stage) {
+    return appState.quizSessions[stage.id] || createQuizSession(stage);
+  }
+
+  function resetQuizSession(stageId) {
+    delete appState.quizSessions[stageId];
   }
 
   function hasStructuredMaterials(stage) {
@@ -2078,6 +2194,10 @@
   function buildStageMaterials(stage) {
     var materials = Array.isArray(stage.materials) ? stage.materials : [];
     var list;
+
+    if (!materials.length) {
+      return createElement("p", "empty-state", "No hay PDFs registrados en esta etapa por el momento.");
+    }
 
     if (hasStructuredMaterials(stage)) {
       var grid = createElement("div", "stage-material-card-grid");
@@ -2170,24 +2290,39 @@
   function buildStageQuizForm(stage) {
     var form = createElement("form", "evaluation-form");
     var quiz = getStageQuiz(stage);
+    var session = getQuizSession(stage);
+
+    if (!quiz.questions || !quiz.questions.length) {
+      form.appendChild(createElement("p", "empty-state", "No hay evaluación configurada para esta etapa."));
+      return form;
+    }
 
     quiz.questions.forEach(function (question, questionIndex) {
       var fieldset = createElement("fieldset", "form-question");
-      var legend = createElement("legend", "", question.text);
+      var questionId = getQuizQuestionId(stage, question, questionIndex);
+      var optionMap = {};
+      var orderedOptionIds = session.optionOrders[questionId] || [];
+      var legend = createElement("legend", "", getQuizQuestionText(question));
       var options = createElement("div", "option-stack");
 
       fieldset.appendChild(legend);
 
-      question.options.forEach(function (option, optionIndex) {
+      normalizeQuizOptions(question).forEach(function (option) {
+        optionMap[option.id] = option;
+      });
+
+      orderedOptionIds.map(function (optionId) {
+        return optionMap[optionId];
+      }).filter(Boolean).forEach(function (option) {
         var label = document.createElement("label");
         var input = document.createElement("input");
         var text = document.createElement("span");
 
         input.type = "radio";
         input.name = stage.id + "-question-" + questionIndex;
-        input.value = String(optionIndex);
+        input.value = option.id;
         input.required = true;
-        text.textContent = option.label;
+        text.textContent = option.text;
 
         label.appendChild(input);
         label.appendChild(text);
@@ -2217,9 +2352,9 @@
     var content = createElement("div", "stage-detail-content");
     var mainColumn = createElement("div", "stage-detail-main");
     var sideColumn = createElement("aside", "stage-detail-aside");
-    var materialSection = createElement("section", "stage-detail-section");
+    var materialSection = createElement("section", "stage-detail-section stage-material-section");
     var evaluationSection = createElement("section", "stage-detail-section");
-    var feedback = buildFeedback(stage.id);
+    var feedback = buildStageFeedback(stage.id);
 
     backButton.type = "button";
     backButton.addEventListener("click", goToRouteMap);
@@ -2281,10 +2416,18 @@
     var submitButton = form.querySelector("button[type='submit'], button:not([type])");
     var originalButtonText = submitButton ? submitButton.textContent : "";
     var progress = getLearningProgressForRender();
-    var formData;
     var quiz = getStageQuiz(stage);
+    var questions = quiz.questions || [];
+    var formData;
     var correctAnswers = 0;
     var selectedAnswers = [];
+    var submittedAt = new Date().toISOString();
+    var minimumScore = data.settings.minimumScore;
+    var nextStageId = getNextStageId(stage.id);
+    var score;
+    var passed;
+    var answersPayload;
+    var attempt;
 
     if (appState.savingQuizStages[stage.id]) {
       return;
@@ -2300,6 +2443,16 @@
       return;
     }
 
+    if (!questions.length) {
+      latestStageFeedback = {
+        stageId: stage.id,
+        title: "Evaluación no disponible",
+        message: "No hay preguntas configuradas para esta etapa."
+      };
+      renderLearningPath();
+      return;
+    }
+
     appState.savingQuizStages[stage.id] = true;
 
     if (submitButton) {
@@ -2309,44 +2462,34 @@
 
     formData = new FormData(form);
 
-    quiz.questions.forEach(function (question, questionIndex) {
-      var selectedIndex = Number(formData.get(stage.id + "-question-" + questionIndex));
-      var selectedOption = question.options[selectedIndex];
+    questions.forEach(function (question, questionIndex) {
+      var questionId = getQuizQuestionId(stage, question, questionIndex);
+      var selectedOptionId = formData.get(stage.id + "-question-" + questionIndex);
+      var selectedOption = normalizeQuizOptions(question).find(function (option) {
+        return option.id === selectedOptionId;
+      });
 
       if (selectedOption && selectedOption.correct) {
         correctAnswers += 1;
       }
 
       selectedAnswers.push({
-        question: question.text,
-        answer: selectedOption ? selectedOption.label : "",
+        questionId: questionId,
+        question: getQuizQuestionText(question),
+        selectedOptionId: selectedOption ? selectedOption.id : "",
+        selectedOptionText: selectedOption ? selectedOption.text : "",
         correct: Boolean(selectedOption && selectedOption.correct)
       });
     });
 
-    var score = quiz.questions.length
-      ? Math.round((correctAnswers / quiz.questions.length) * 100)
-      : 0;
-    var minimumScore = data.settings.minimumScore;
-    var nextStageId = getNextStageId(stage.id);
-    var passed = score >= minimumScore;
-    var attempt = {
-      id: String(Date.now()),
-      stageId: stage.id,
-      stage_key: stage.id,
-      score: score,
-      passed: passed,
-      answers: selectedAnswers,
-      createdAt: new Date().toISOString()
-    };
-
-    if (!passed) {
+    if (selectedAnswers.some(function (answer) {
+      return !answer.selectedOptionId;
+    })) {
       latestStageFeedback = {
         stageId: stage.id,
-        title: "Mini evaluación pendiente",
-        message: "No alcanzaste la nota mínima. Revisa el material e inténtalo de nuevo."
+        title: "Evaluación incompleta",
+        message: "Responda todas las preguntas antes de enviar la evaluación."
       };
-      setSyncNotice("");
       appState.savingQuizStages[stage.id] = false;
 
       if (submitButton) {
@@ -2354,10 +2497,44 @@
         submitButton.textContent = originalButtonText;
       }
 
-      if (form.reset) {
-        form.reset();
-      }
+      renderLearningPath();
+      return;
+    }
 
+    score = questions.length
+      ? Math.round((correctAnswers / questions.length) * 100)
+      : 0;
+    passed = score >= minimumScore;
+    answersPayload = {
+      stageKey: stage.id,
+      score: score,
+      percentage: score,
+      passed: passed,
+      submittedAt: submittedAt,
+      items: selectedAnswers
+    };
+    attempt = {
+      id: String(Date.now()),
+      stageId: stage.id,
+      stage_key: stage.id,
+      score: score,
+      passed: passed,
+      answers: answersPayload,
+      createdAt: submittedAt
+    };
+
+    if (!passed) {
+      latestStageFeedback = {
+        stageId: stage.id,
+        type: "quiz-result",
+        title: "Resultado de la evaluación",
+        message: "No alcanzó la nota mínima. Revise los materiales de la etapa e inténtelo nuevamente.",
+        score: score,
+        passed: false
+      };
+      setSyncNotice("");
+      appState.savingQuizStages[stage.id] = false;
+      resetQuizSession(stage.id);
       renderLearningPath();
       return;
     }
@@ -2366,7 +2543,7 @@
       var attemptResponse = await supabaseClient.from("quiz_attempts").insert({
         user_id: appState.user.id,
         stage_key: stage.id,
-        answers: selectedAnswers,
+        answers: answersPayload,
         score: score,
         passed: true
       });
@@ -2416,10 +2593,11 @@
 
     latestStageFeedback = {
       stageId: stage.id,
-      title: "Mini evaluación aprobada",
-      message: nextStageId
-        ? "Obtuviste " + score + "%. Se desbloqueó la etapa " + nextStageId + "."
-        : "Obtuviste " + score + "%. Ruta completada."
+      type: "quiz-result",
+      title: "Evaluación aprobada",
+      message: "La etapa fue completada correctamente.",
+      score: score,
+      passed: true
     };
 
     storage.saveLearningProgress(progress);
@@ -2436,6 +2614,7 @@
     }
 
     appState.savingQuizStages[stage.id] = false;
+    resetQuizSession(stage.id);
     renderLearningPath();
   }
 

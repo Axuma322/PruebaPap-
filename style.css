@@ -1226,6 +1226,46 @@ button {
   gap: 16px;
 }
 
+.quiz-result-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+}
+
+.quiz-result-card.is-passed {
+  background: #eef8f5;
+  border-color: #c9e1da;
+}
+
+.quiz-result-card.is-failed {
+  background: #fff8ef;
+  border-color: #ead1bd;
+}
+
+.quiz-result-card h4,
+.quiz-result-card p {
+  margin: 0;
+}
+
+.quiz-result-score {
+  color: var(--accent-dark);
+  display: block;
+  font-size: 1.05rem;
+}
+
+.quiz-result-card span {
+  color: var(--muted);
+}
+
+.quiz-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
 .forum-block {
   margin-bottom: 0;
 }
@@ -1531,6 +1571,8 @@ button {
   .diagnostic-question-actions,
   .diagnostic-question-actions button,
   .diagnosis-summary-card .stage-actions button,
+  .quiz-result-actions,
+  .quiz-result-actions button,
   .diagnostic-start-form button {
     width: 100%;
   }
