@@ -781,9 +781,14 @@
       pdfMaterial("Plan mejora organizacional", "assets/materiales/etapa-c/plan-mejora-organizacional.pdf", "Archivo PDF encontrado en la carpeta de la etapa C.")
     ],
     D: [
-      pdfMaterial("Bitácora", "assets/materiales/etapa-d/Bitácora.pdf", "Archivo PDF encontrado en la carpeta de la etapa D."),
-      pdfMaterial("Caso aplicado comunidad evidencia", "assets/materiales/etapa-d/caso_aplicado_comunidad_evidencia.pdf", "Archivo PDF encontrado en la carpeta de la etapa D."),
-      pdfMaterial("Lectura comunidad evidencia", "assets/materiales/etapa-d/lectura_comunidad_evidencia.pdf", "Archivo PDF encontrado en la carpeta de la etapa D.")
+      pdfMaterial("Bitácora", "assets/materiales/etapa-d/Bitácora.pdf", "Recurso de trabajo para registrar avances, reflexiones y evidencias del proceso de mejora institucional."),
+      pdfMaterial("Caso aplicado: comunidad y evidencia", "assets/materiales/etapa-d/caso_aplicado_comunidad_evidencia.pdf", "Caso aplicado para analizar la relación entre comunidad educativa, evidencia institucional y toma de decisiones."),
+      pdfMaterial("Consulta: comunidad", "assets/materiales/etapa-d/consulta_comunidad.pdf", "Material de consulta sobre participación, comunidad educativa y construcción colectiva de procesos institucionales."),
+      pdfMaterial("Consulta: evidencia institucional", "assets/materiales/etapa-d/consulta_evidencia.pdf", "Material de consulta sobre el uso de evidencia para fundamentar decisiones de gestión y mejora."),
+      pdfMaterial("Consulta: mejora continua", "assets/materiales/etapa-d/consulta_mejora_continua.pdf", "Material de consulta sobre ciclos de mejora, seguimiento institucional y sostenibilidad de las acciones."),
+      pdfMaterial("El auténtico liderazgo", "assets/materiales/etapa-d/El auténtico liderazgo (Harvard Business School).pdf", "Lectura complementaria sobre liderazgo auténtico y su relación con la gestión institucional."),
+      pdfMaterial("Lectura: comunidad y evidencia", "assets/materiales/etapa-d/lectura_comunidad_evidencia.pdf", "Lectura base para comprender la articulación entre comunidad educativa, evidencia y mejora institucional."),
+      pdfMaterial("Liderazgo y presencia directiva", "assets/materiales/etapa-d/Liderazgo Leadership presence (Harvard Business Review).pdf", "Lectura complementaria sobre presencia, liderazgo y comunicación en contextos organizacionales.")
     ]
   };
 
