@@ -1258,6 +1258,95 @@ button {
   gap: 16px;
 }
 
+.likert-form {
+  gap: 20px;
+}
+
+.likert-block {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.likert-block h4,
+.likert-block p {
+  margin: 0;
+}
+
+.likert-item {
+  border: 0;
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+}
+
+.likert-item legend {
+  color: var(--text);
+  font-weight: 800;
+  line-height: 1.45;
+  padding: 0;
+}
+
+.likert-scale {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.likert-scale label {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  cursor: pointer;
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  min-height: 78px;
+  padding: 10px;
+  text-align: center;
+}
+
+.likert-scale label:focus-within,
+.likert-scale label:hover {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(38, 111, 148, 0.12);
+}
+
+.likert-scale input {
+  margin: 0;
+}
+
+.likert-scale-value {
+  align-items: center;
+  background: var(--surface-soft);
+  border-radius: 999px;
+  color: var(--accent-blue);
+  display: inline-flex;
+  font-weight: 900;
+  height: 28px;
+  justify-content: center;
+  width: 28px;
+}
+
+.likert-result-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.likert-block-result {
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+}
+
 .quiz-result-card {
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -1561,6 +1650,18 @@ button {
   .diagnostic-detail-content,
   .diagnostic-start-form {
     grid-template-columns: 1fr;
+  }
+
+  .likert-scale,
+  .likert-result-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .likert-scale label {
+    grid-template-columns: auto auto 1fr;
+    justify-items: start;
+    min-height: 54px;
+    text-align: left;
   }
 
   .stage-detail-header h2 {

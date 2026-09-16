@@ -834,18 +834,86 @@
       ["Aplicar el dominio de Estatus de forma constructiva en la gestión educativa implica, entre otras acciones:", ["Comparar públicamente el desempeño de los docentes entre sí de forma competitiva", "Reconocer logros individuales y crear oportunidades de crecimiento profesional visibles", "Evitar cualquier forma de reconocimiento para no generar jerarquías", "Centralizar todo el mérito institucional en la figura del director"], 1],
       ["La aplicación integral del modelo SCARF en la gestión educativa busca, en última instancia:", ["Reducir la interacción entre el equipo directivo y el personal docente", "Minimizar las respuestas de amenaza social y maximizar las de recompensa para favorecer el desempeño, el bienestar y la colaboración institucional", "Eliminar por completo la jerarquía organizacional", "Sustituir la evaluación docente por procesos exclusivamente automatizados"], 1]
     ]),
-    D: buildStageQuiz("D", [
-      ["Una comunidad profesional de aprendizaje al interior de un centro educativo se caracteriza principalmente por:", ["Docentes que trabajan de forma aislada sin compartir prácticas", "Un grupo de educadores que colabora de manera sostenida, comparte evidencia y reflexiona sobre su práctica para mejorar el aprendizaje", "Reuniones administrativas centradas exclusivamente en trámites", "La ausencia de objetivos comunes entre el personal docente"], 1],
-      ["La participación activa de familias y comunidad en la vida institucional, desde una gestión con enfoque neuroeducativo, contribuye principalmente a:", ["Fortalecer redes de apoyo, confianza y sentido de pertenencia que favorecen el bienestar y el aprendizaje", "Aumentar la carga administrativa sin ningún beneficio pedagógico", "Sustituir el rol formativo del cuerpo docente", "Reducir la autonomía institucional del centro educativo"], 0],
-      ["Un director que promueve el liderazgo distribuido, involucrando a docentes, familias y estudiantes en la toma de decisiones institucionales, está fortaleciendo principalmente:", ["Un modelo de gestión centralizado y jerárquico", "El sentido de comunidad y corresponsabilidad institucional", "La dependencia exclusiva de la autoridad directiva", "El aislamiento de los distintos actores educativos"], 1],
-      ["Ante un caso de baja participación de las familias en actividades institucionales, una buena práctica orientada a fortalecer la comunidad educativa sería:", ["Eliminar los espacios de participación familiar por considerarlos poco efectivos", "Sancionar a las familias que no asisten a las convocatorias", "Diversificar los canales de comunicación y crear espacios de participación significativos y accesibles", "Delegar la comunicación con las familias únicamente al personal administrativo"], 2],
-      ["La construcción de una cultura institucional colaborativa, con relaciones de confianza entre docentes, dirección, estudiantes y familias, favorece principalmente:", ["Un clima socioemocional que facilita el aprendizaje y reduce la percepción de amenaza social", "El aumento de la competitividad individual entre docentes", "La disminución de la cohesión institucional", "La eliminación de instancias de retroalimentación"], 0],
-      ["La toma de decisiones institucionales basada en evidencia implica principalmente:", ["Decidir exclusivamente con base en la intuición del equipo directivo", "Recopilar, analizar e interpretar datos institucionales confiables para orientar la acción y la mejora", "Ignorar los resultados de los procesos de evaluación institucional", "Aplicar siempre las mismas estrategias sin revisar sus resultados"], 1],
-      ["Un ciclo de mejora continua institucional (por ejemplo, Planificar-Hacer-Verificar-Actuar) tiene como propósito principal:", ["Implementar cambios de manera permanente sin revisión posterior", "Generar un proceso cíclico de planificación, implementación, evaluación y ajuste de las prácticas institucionales", "Evitar cualquier tipo de cambio en la gestión educativa", "Centrar la mejora únicamente en aspectos de infraestructura"], 1],
-      ["Ante resultados de una autoevaluación institucional que evidencian debilidades en la comunicación entre niveles educativos, una acción de mejora continua coherente sería:", ["Ignorar los resultados por considerarlos poco relevantes", "Diseñar e implementar un plan de acción específico, con seguimiento y evaluación de su impacto", "Aplazar cualquier intervención hasta el siguiente ciclo lectivo sin analizar causas", "Atribuir el problema únicamente a factores externos a la institución"], 1],
-      ["La sistematización de buenas prácticas institucionales (documentarlas, analizarlas y compartirlas) tiene como principal beneficio:", ["Aumentar la carga de trabajo sin ningún valor agregado", "Facilitar el aprendizaje organizacional y la réplica de estrategias efectivas en otros contextos institucionales", "Reducir la posibilidad de mejora futura", "Sustituir la necesidad de evaluación institucional"], 1],
-      ["Para que un plan de mejora institucional sea sostenible en el tiempo, es fundamental que:", ["Dependa exclusivamente de la gestión de una sola persona", "Se revise una única vez al inicio del proceso sin ajustes posteriores", "Se institucionalice mediante seguimiento continuo, evidencia y participación de la comunidad educativa", "Se mantenga en secreto para evitar resistencias del personal"], 2]
-    ])
+    D: {
+      type: "likert",
+      title: "Autoevaluación aplicada de comunidad, evidencia y mejora institucional",
+      description: "Valore la frecuencia con que estas prácticas están presentes en su gestión institucional. No hay respuestas correctas o incorrectas; la escala permite reconocer fortalezas y prioridades de mejora.",
+      maxScore: 80,
+      passingScore: 70,
+      scale: [
+        { id: "1", value: 1, label: "Nunca" },
+        { id: "2", value: 2, label: "A veces" },
+        { id: "3", value: 3, label: "Frecuentemente" },
+        { id: "4", value: 4, label: "Siempre" }
+      ],
+      classifications: [
+        {
+          min: 90,
+          label: "Consolidado",
+          feedback: "Las prácticas evaluadas muestran un nivel sólido de integración institucional. Se recomienda sostenerlas, documentarlas y compartirlas como evidencia de mejora."
+        },
+        {
+          min: 70,
+          label: "En desarrollo",
+          feedback: "Las prácticas evaluadas presentan avances relevantes, aunque aún requieren seguimiento, sistematización y fortalecimiento para consolidarse."
+        },
+        {
+          min: 0,
+          label: "Prioritario",
+          feedback: "Los resultados señalan áreas prioritarias de fortalecimiento. Se recomienda revisar los materiales, seleccionar acciones concretas y volver a realizar la autoevaluación."
+        }
+      ],
+      blocks: [
+        {
+          id: "comunidad",
+          title: "Comunidad",
+          maxScore: 20,
+          items: [
+            { id: "D1", text: "Promuevo espacios sistemáticos para que el personal docente comparta aprendizajes, experiencias y buenas prácticas." },
+            { id: "D2", text: "Integro la participación de familias, estudiantes y comunidad en procesos relevantes de la vida institucional." },
+            { id: "D3", text: "Distribuyo responsabilidades de liderazgo entre distintos actores educativos según sus fortalezas y posibilidades." },
+            { id: "D4", text: "Uso canales de comunicación diversos y accesibles para fortalecer la participación de la comunidad educativa." },
+            { id: "D5", text: "Fomento relaciones de confianza, colaboración y pertenencia entre dirección, docentes, estudiantes y familias." }
+          ]
+        },
+        {
+          id: "evidencia",
+          title: "Evidencia Institucional",
+          maxScore: 20,
+          items: [
+            { id: "D6", text: "Recolecto información institucional confiable antes de tomar decisiones de mejora." },
+            { id: "D7", text: "Utilizo indicadores, registros o evidencias concretas para analizar necesidades del centro educativo." },
+            { id: "D8", text: "Comparo resultados a lo largo del tiempo para identificar avances, retrocesos o nuevas necesidades." },
+            { id: "D9", text: "Documento los efectos de las acciones implementadas mediante datos, observaciones o registros verificables." },
+            { id: "D10", text: "Comparto la evidencia institucional con el equipo para favorecer decisiones transparentes y participativas." }
+          ]
+        },
+        {
+          id: "mejora",
+          title: "Mejora Continua",
+          maxScore: 20,
+          items: [
+            { id: "D11", text: "Planifico acciones de mejora con objetivos claros, responsables definidos y tiempos de seguimiento." },
+            { id: "D12", text: "Doy seguimiento periódico a las acciones de mejora para verificar si están produciendo los resultados esperados." },
+            { id: "D13", text: "Ajusto las estrategias institucionales cuando la evidencia muestra que no están funcionando adecuadamente." },
+            { id: "D14", text: "Sistematizo buenas prácticas para que puedan sostenerse, compartirse o replicarse en otros espacios." },
+            { id: "D15", text: "Procuro que las mejoras no dependan de una sola persona, sino que queden integradas en procesos institucionales." }
+          ]
+        },
+        {
+          id: "aplicacion",
+          title: "Aplicación Integrada",
+          maxScore: 20,
+          items: [
+            { id: "D16", text: "Relaciono participación comunitaria, evidencia institucional y mejora continua dentro de un mismo proceso de gestión." },
+            { id: "D17", text: "Conecto las decisiones institucionales con metas pedagógicas, bienestar y aprendizaje del estudiantado." },
+            { id: "D18", text: "Uso la evidencia disponible para orientar el liderazgo distribuido y la corresponsabilidad del equipo." },
+            { id: "D19", text: "Evalúo el impacto de las acciones institucionales considerando tanto resultados como clima socioemocional." },
+            { id: "D20", text: "Comunico resultados, aprendizajes y próximos pasos para sostener una cultura institucional de mejora." }
+          ]
+        }
+      ]
+    }
   };
 
   window.APP_DATA.learningPath.stages.forEach(function (stage) {

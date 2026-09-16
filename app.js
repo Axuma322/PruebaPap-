@@ -2234,6 +2234,35 @@
     return box;
   }
 
+  function appendLikertResultDetails(box, feedback) {
+    var blockList = createElement("div", "likert-result-grid");
+
+    box.appendChild(createElement(
+      "strong",
+      "quiz-result-score",
+      "Puntaje total: " + feedback.totalScore + " / " + feedback.maxScore + " · " + feedback.score + "%"
+    ));
+    box.appendChild(createElement("span", "", "Clasificación: " + feedback.classification));
+
+    (feedback.blockScores || []).forEach(function (blockScore) {
+      var item = createElement("div", "likert-block-result");
+
+      item.appendChild(createElement("strong", "", blockScore.title));
+      item.appendChild(createElement(
+        "span",
+        "",
+        blockScore.score + " / " + blockScore.maxScore + " · " + blockScore.percentage + "%"
+      ));
+      blockList.appendChild(item);
+    });
+
+    box.appendChild(blockList);
+
+    if (feedback.generalFeedback) {
+      box.appendChild(createElement("p", "", feedback.generalFeedback));
+    }
+  }
+
   function buildQuizResultCard(feedback) {
     var box = createElement("div", "quiz-result-card " + (feedback.passed ? "is-passed" : "is-failed"));
     var actions = createElement("div", "quiz-result-actions");
@@ -2244,7 +2273,9 @@
     box.appendChild(createElement("h4", "", feedback.title));
     box.appendChild(createElement("p", "", feedback.message));
 
-    if (feedback.score !== undefined) {
+    if (feedback.evaluationKind === "likert") {
+      appendLikertResultDetails(box, feedback);
+    } else if (feedback.score !== undefined) {
       box.appendChild(createElement("strong", "quiz-result-score", "Resultado obtenido: " + feedback.score + "%"));
       box.appendChild(createElement("span", "", "Nota mínima requerida: " + data.settings.minimumScore + "%"));
     }
@@ -2344,6 +2375,47 @@
     return stage.quiz || stage.evaluation || { questions: [] };
   }
 
+  function isLikertEvaluation(quiz) {
+    return quiz && quiz.type === "likert";
+  }
+
+  function getLikertScale(quiz) {
+    return Array.isArray(quiz.scale) && quiz.scale.length
+      ? quiz.scale
+      : [
+        { id: "1", value: 1, label: "Nunca" },
+        { id: "2", value: 2, label: "A veces" },
+        { id: "3", value: 3, label: "Frecuentemente" },
+        { id: "4", value: 4, label: "Siempre" }
+      ];
+  }
+
+  function getLikertBlocks(quiz) {
+    return Array.isArray(quiz.blocks) ? quiz.blocks : [];
+  }
+
+  function getLikertItemId(block, item, itemIndex) {
+    return item.id || (block.id + "-" + String(itemIndex + 1));
+  }
+
+  function getLikertItemText(item) {
+    return item.text || item.prompt || "";
+  }
+
+  function getLikertClassification(quiz, percentage) {
+    var classifications = Array.isArray(quiz.classifications) ? quiz.classifications : [];
+    var ordered = classifications.slice().sort(function (left, right) {
+      return Number(right.min || 0) - Number(left.min || 0);
+    });
+
+    return ordered.find(function (classification) {
+      return percentage >= Number(classification.min || 0);
+    }) || {
+      label: percentage >= 90 ? "Consolidado" : (percentage >= 70 ? "En desarrollo" : "Prioritario"),
+      feedback: ""
+    };
+  }
+
   function getQuizQuestionText(question) {
     return question.text || question.prompt || question.q || "";
   }
@@ -2374,8 +2446,20 @@
     var quiz = getStageQuiz(stage);
     var session = {
       stageId: stage.id,
-      optionOrders: {}
+      optionOrders: {},
+      blockItemOrders: {}
     };
+
+    if (isLikertEvaluation(quiz)) {
+      getLikertBlocks(quiz).forEach(function (block) {
+        session.blockItemOrders[block.id] = shuffleArray((block.items || []).map(function (item, itemIndex) {
+          return getLikertItemId(block, item, itemIndex);
+        }));
+      });
+
+      appState.quizSessions[stage.id] = session;
+      return session;
+    }
 
     (quiz.questions || []).forEach(function (question, questionIndex) {
       var questionId = getQuizQuestionId(stage, question, questionIndex);
@@ -2536,10 +2620,83 @@
     return section;
   }
 
+  function buildLikertEvaluationForm(stage, quiz, session) {
+    var form = createElement("form", "evaluation-form likert-form");
+    var scale = getLikertScale(quiz);
+    var blocks = getLikertBlocks(quiz);
+
+    if (quiz.description) {
+      form.appendChild(createElement("p", "helper-text", quiz.description));
+    }
+
+    if (!blocks.length) {
+      form.appendChild(createElement("p", "empty-state", "La evaluación de esta etapa aún no ha sido cargada."));
+      return form;
+    }
+
+    blocks.forEach(function (block) {
+      var section = createElement("section", "likert-block");
+      var itemMap = {};
+      var orderedItemIds = session.blockItemOrders[block.id] || [];
+
+      section.appendChild(createElement("h4", "", block.title));
+      section.appendChild(createElement("p", "helper-text", "Puntaje máximo del bloque: " + (block.maxScore || 20)));
+
+      (block.items || []).forEach(function (item, itemIndex) {
+        itemMap[getLikertItemId(block, item, itemIndex)] = item;
+      });
+
+      orderedItemIds.map(function (itemId) {
+        return itemMap[itemId];
+      }).filter(Boolean).forEach(function (item, itemIndex) {
+        var itemId = getLikertItemId(block, item, itemIndex);
+        var row = createElement("fieldset", "likert-item");
+        var legend = createElement("legend", "", getLikertItemText(item));
+        var options = createElement("div", "likert-scale");
+
+        row.setAttribute("data-block-id", block.id);
+        row.appendChild(legend);
+
+        scale.forEach(function (scaleOption) {
+          var label = document.createElement("label");
+          var input = document.createElement("input");
+          var marker = createElement("span", "likert-scale-value", String(scaleOption.value));
+          var text = createElement("span", "", scaleOption.label);
+
+          input.type = "radio";
+          input.name = stage.id + "-likert-" + itemId;
+          input.value = String(scaleOption.value);
+          input.required = true;
+
+          label.appendChild(input);
+          label.appendChild(marker);
+          label.appendChild(text);
+          options.appendChild(label);
+        });
+
+        row.appendChild(options);
+        section.appendChild(row);
+      });
+
+      form.appendChild(section);
+    });
+
+    form.appendChild(createElement("button", "primary-button", "Enviar autoevaluación"));
+    form.addEventListener("submit", function (event) {
+      handleEvaluationSubmit(event, stage);
+    });
+
+    return form;
+  }
+
   function buildStageQuizForm(stage) {
     var form = createElement("form", "evaluation-form");
     var quiz = getStageQuiz(stage);
     var session = getQuizSession(stage);
+
+    if (isLikertEvaluation(quiz)) {
+      return buildLikertEvaluationForm(stage, quiz, session);
+    }
 
     if (!quiz.questions || !quiz.questions.length) {
       var materialButton = createElement("button", "secondary-button", "Volver a materiales");
@@ -2670,6 +2827,254 @@
     container.appendChild(detail);
   }
 
+  async function handleLikertEvaluationSubmit(event, stage) {
+    var form = event.currentTarget;
+    var submitButton = form.querySelector("button[type='submit'], button:not([type])");
+    var originalButtonText = submitButton ? submitButton.textContent : "";
+    var progress = getLearningProgressForRender();
+    var quiz = getStageQuiz(stage);
+    var blocks = getLikertBlocks(quiz);
+    var scale = getLikertScale(quiz);
+    var scaleMap = {};
+    var submittedAt = new Date().toISOString();
+    var minimumScore = quiz.passingScore || data.settings.minimumScore;
+    var formData;
+    var totalScore = 0;
+    var maxScore = quiz.maxScore || 0;
+    var selectedItems = [];
+    var blockScores = [];
+    var percentage;
+    var passed;
+    var classification;
+    var answersPayload;
+    var attempt;
+    var nextStageId = getNextStageId(stage.id);
+
+    event.preventDefault();
+
+    if (appState.savingQuizStages[stage.id]) {
+      return;
+    }
+
+    if (!isDemoMode() && isStageCompleted(stage.id, progress)) {
+      latestStageFeedback = {
+        stageId: stage.id,
+        title: "Esta etapa ya fue completada",
+        message: "La autoevaluación de esta etapa ya fue registrada."
+      };
+      renderLearningPath();
+      return;
+    }
+
+    if (!blocks.length) {
+      latestStageFeedback = {
+        stageId: stage.id,
+        title: "Evaluación no disponible",
+        message: "La evaluación de esta etapa aún no ha sido cargada."
+      };
+      renderLearningPath();
+      return;
+    }
+
+    scale.forEach(function (scaleOption) {
+      scaleMap[String(scaleOption.value)] = scaleOption;
+    });
+
+    appState.savingQuizStages[stage.id] = true;
+
+    if (submitButton) {
+      submitButton.disabled = true;
+      submitButton.textContent = "Guardando...";
+    }
+
+    formData = new FormData(form);
+
+    blocks.forEach(function (block) {
+      var blockScore = 0;
+      var blockMaxScore = block.maxScore || ((block.items || []).length * 4);
+
+      (block.items || []).forEach(function (item, itemIndex) {
+        var itemId = getLikertItemId(block, item, itemIndex);
+        var selectedValue = formData.get(stage.id + "-likert-" + itemId);
+        var numericValue = Number(selectedValue);
+        var scaleOption = scaleMap[String(selectedValue)] || {};
+
+        if (selectedValue) {
+          blockScore += numericValue;
+          totalScore += numericValue;
+        }
+
+        selectedItems.push({
+          itemId: itemId,
+          blockId: block.id,
+          blockTitle: block.title,
+          prompt: getLikertItemText(item),
+          selectedValue: selectedValue ? numericValue : null,
+          selectedLabel: scaleOption.label || ""
+        });
+      });
+
+      maxScore += quiz.maxScore ? 0 : blockMaxScore;
+      blockScores.push({
+        id: block.id,
+        title: block.title,
+        score: blockScore,
+        maxScore: blockMaxScore,
+        percentage: blockMaxScore ? Math.round((blockScore / blockMaxScore) * 100) : 0
+      });
+    });
+
+    if (selectedItems.some(function (item) {
+      return item.selectedValue === null;
+    })) {
+      latestStageFeedback = {
+        stageId: stage.id,
+        title: "Autoevaluación incompleta",
+        message: "Responda los 20 ítems antes de enviar la autoevaluación."
+      };
+      appState.savingQuizStages[stage.id] = false;
+
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = originalButtonText;
+      }
+
+      renderLearningPath();
+      return;
+    }
+
+    percentage = maxScore ? Math.round((totalScore / maxScore) * 100) : 0;
+    passed = percentage >= minimumScore;
+    classification = getLikertClassification(quiz, percentage);
+    answersPayload = {
+      evaluationType: "likert",
+      stageKey: stage.id,
+      totalScore: totalScore,
+      maxScore: maxScore,
+      percentage: percentage,
+      score: percentage,
+      classification: classification.label,
+      passed: passed,
+      submittedAt: submittedAt,
+      scale: scale,
+      blockScores: blockScores,
+      items: selectedItems
+    };
+    attempt = {
+      id: String(Date.now()),
+      stageId: stage.id,
+      stage_key: stage.id,
+      score: percentage,
+      passed: passed,
+      answers: answersPayload,
+      createdAt: submittedAt
+    };
+
+    latestStageFeedback = {
+      stageId: stage.id,
+      type: "quiz-result",
+      evaluationKind: "likert",
+      demoMode: isDemoMode(),
+      title: passed ? "Autoevaluación completada" : "Resultado de la autoevaluación",
+      message: passed
+        ? (isDemoMode()
+          ? "Autoevaluación completada en modo demostración. Este resultado no se guardó como dato real."
+          : "La etapa D fue completada correctamente.")
+        : "No alcanzó la nota mínima. Su resultado fue de " + percentage + "%. La nota mínima es " + minimumScore + "%. Puede intentarlo nuevamente.",
+      score: percentage,
+      totalScore: totalScore,
+      maxScore: maxScore,
+      classification: classification.label,
+      generalFeedback: classification.feedback,
+      blockScores: blockScores,
+      passed: passed
+    };
+
+    if (isDemoMode()) {
+      setSyncNotice("");
+      appState.savingQuizStages[stage.id] = false;
+      resetQuizSession(stage.id);
+      renderLearningPath();
+      return;
+    }
+
+    if (!passed) {
+      setSyncNotice("");
+      appState.savingQuizStages[stage.id] = false;
+      resetQuizSession(stage.id);
+      renderLearningPath();
+      return;
+    }
+
+    try {
+      var attemptResponse = await supabaseClient.from("quiz_attempts").insert({
+        user_id: appState.user.id,
+        stage_key: stage.id,
+        answers: answersPayload,
+        score: percentage,
+        passed: true
+      });
+
+      if (attemptResponse.error) {
+        throw attemptResponse.error;
+      }
+    } catch (error) {
+      appState.savingQuizStages[stage.id] = false;
+
+      if (isDuplicateRecordError(error)) {
+        try {
+          await loadQuizAttempts();
+        } catch (syncError) {
+          setSyncNotice("Esta etapa ya fue completada, pero no se pudo refrescar la lista de intentos.");
+        }
+
+        latestStageFeedback = {
+          stageId: stage.id,
+          title: "Esta etapa ya fue completada",
+          message: "La autoevaluación de esta etapa ya fue registrada."
+        };
+        setSyncNotice("Esta etapa ya fue completada.");
+        renderLearningPath();
+        return;
+      }
+
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = originalButtonText;
+      }
+
+      setSyncNotice("No se pudo guardar la autoevaluación en Supabase. Revisa la conexión e intenta nuevamente.");
+      return;
+    }
+
+    appState.quizAttemptsByStage[stage.id] = attempt;
+    appState.quizScores[stage.id] = percentage;
+    progress.scores[stage.id] = percentage;
+    storage.addEvaluationAttempt(attempt);
+    addUnique(progress.completedStages, stage.id);
+
+    if (nextStageId) {
+      addUnique(progress.unlockedStages, nextStageId);
+    }
+
+    storage.saveLearningProgress(progress);
+
+    try {
+      await saveRemoteProgress({
+        current_stage: nextStageId || stage.id,
+        completed_stages: progress.completedStages
+      });
+
+      setSyncNotice("");
+    } catch (error) {
+      setSyncNotice("La autoevaluación fue registrada, pero no se pudo actualizar el progreso remoto. Revisa la conexión e intenta recargar.");
+    }
+
+    appState.savingQuizStages[stage.id] = false;
+    resetQuizSession(stage.id);
+    renderLearningPath();
+  }
+
   async function handleEvaluationSubmit(event, stage) {
     event.preventDefault();
 
@@ -2689,6 +3094,11 @@
     var passed;
     var answersPayload;
     var attempt;
+
+    if (isLikertEvaluation(quiz)) {
+      await handleLikertEvaluationSubmit(event, stage);
+      return;
+    }
 
     if (appState.savingQuizStages[stage.id]) {
       return;
