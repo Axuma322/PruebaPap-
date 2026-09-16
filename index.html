@@ -76,6 +76,7 @@
       <!-- Supabase Auth: muestra el perfil cargado desde profiles. -->
       <div class="session-widget" id="sessionWidget" hidden>
         <span id="sessionLabel"></span>
+        <span class="demo-mode-badge" id="demoModeBadge" hidden>Modo demostración</span>
         <button class="ghost-button" data-guide-button type="button">Ver guía de uso</button>
         <button class="ghost-button" id="logoutButton" type="button">Cerrar sesión</button>
       </div>
@@ -105,6 +106,10 @@
 
   <main class="page-shell">
     <div class="sync-notice" id="syncNotice" role="status" aria-live="polite" hidden></div>
+    <div class="demo-mode-notice" id="demoModeNotice" hidden>
+      <strong>Recorrido libre para presentación</strong>
+      <span>Este perfil permite recorrer la plataforma libremente para fines de presentación. Los resultados generados en este modo no se registran como datos reales de investigación.</span>
+    </div>
 
     <section class="module-block" id="diagnostico" aria-labelledby="diagnosisTitle">
       <div class="module-heading">

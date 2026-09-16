@@ -267,6 +267,38 @@ button {
   font-weight: 800;
 }
 
+.session-widget .demo-mode-badge {
+  background: #fff4df;
+  border: 1px solid #efd3a3;
+  border-radius: 999px;
+  color: #895b13;
+  padding: 5px 10px;
+}
+
+.demo-mode-notice {
+  background: #fff8ec;
+  border: 1px solid #ead2a9;
+  border-radius: var(--radius);
+  color: #674912;
+  display: grid;
+  gap: 4px;
+  margin-bottom: 20px;
+  padding: 14px 16px;
+}
+
+.demo-mode-notice[hidden] {
+  display: none;
+}
+
+.demo-mode-notice strong {
+  color: #5f4310;
+}
+
+.demo-mode-notice span {
+  color: #725626;
+  line-height: 1.5;
+}
+
 .hero-grid {
   align-items: center;
   display: grid;

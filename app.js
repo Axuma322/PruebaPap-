@@ -17,11 +17,15 @@
     quizSessions: {},
     forumPosts: [],
     remoteDataLoaded: false,
+    isDemoUser: false,
+    demoDiagnosticResults: [],
     isSavingDiagnostic: false,
     savingQuizStages: {}
   };
   var latestStageFeedback = null;
   var DEV_MODE = false;
+  var DEMO_USERNAME = "demo";
+  var DEMO_DIAGNOSTIC_STORAGE_KEY = "planne_demo_diagnostic_results";
   var GUIDE_STORAGE_KEY = "planne:usage-guide-seen";
   var guideState = {
     active: false,
@@ -83,6 +87,45 @@
     }
 
     return "";
+  }
+
+  function isDemoMode() {
+    return appState.isDemoUser === true;
+  }
+
+  function readDemoDiagnosticResults() {
+    try {
+      var rawValue = window.sessionStorage.getItem(DEMO_DIAGNOSTIC_STORAGE_KEY);
+      var parsedValue = rawValue ? JSON.parse(rawValue) : [];
+
+      return Array.isArray(parsedValue) ? parsedValue : [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function saveDemoDiagnosticResults(results) {
+    try {
+      window.sessionStorage.setItem(DEMO_DIAGNOSTIC_STORAGE_KEY, JSON.stringify(results));
+    } catch (error) {
+      return false;
+    }
+
+    return true;
+  }
+
+  function getLatestDemoDiagnosticResult() {
+    var results = appState.demoDiagnosticResults || [];
+
+    return results[results.length - 1] || null;
+  }
+
+  function addDemoDiagnosticResult(result) {
+    var results = (appState.demoDiagnosticResults || []).slice();
+
+    results.push(result);
+    appState.demoDiagnosticResults = results.slice(-10);
+    saveDemoDiagnosticResults(appState.demoDiagnosticResults);
   }
 
   function clearAccessMessages() {
@@ -175,6 +218,16 @@
 
     notice.hidden = !message;
     notice.textContent = message || "";
+  }
+
+  function updateDemoModeNotice() {
+    var notice = byId("demoModeNotice");
+
+    if (!notice) {
+      return;
+    }
+
+    notice.hidden = !isDemoMode();
   }
 
   function readGuideSeen() {
@@ -477,7 +530,21 @@
     });
   }
 
+  function getDemoLearningProgress() {
+    return normalizeProgress({
+      unlockedStages: data.learningPath.stages.map(function (stage) {
+        return stage.id;
+      }),
+      completedStages: [],
+      scores: appState.quizScores || {}
+    });
+  }
+
   function getLearningProgressForRender() {
+    if (isDemoMode()) {
+      return getDemoLearningProgress();
+    }
+
     if (appState.remoteProgress) {
       return remoteProgressToLearningProgress(appState.remoteProgress);
     }
@@ -496,6 +563,10 @@
   }
 
   function getNextDiagnosticAttemptType() {
+    if (isDemoMode()) {
+      return "demo";
+    }
+
     if (!getDiagnosticAttemptByType("initial")) {
       return "initial";
     }
@@ -508,6 +579,10 @@
   }
 
   function getDiagnosticAttemptLabel(attemptType) {
+    if (attemptType === "demo") {
+      return "diagnóstico de demostración";
+    }
+
     return attemptType === "final" ? "segundo diagnóstico" : "diagnóstico inicial";
   }
 
@@ -786,15 +861,22 @@
   function updateSessionWidget() {
     var widget = byId("sessionWidget");
     var label = byId("sessionLabel");
+    var demoBadge = byId("demoModeBadge");
     var username = getCurrentUsername();
 
     if (!appState.user) {
       widget.hidden = true;
       label.textContent = "";
+      if (demoBadge) {
+        demoBadge.hidden = true;
+      }
       return;
     }
 
     label.textContent = "Sesión: " + (username || "Usuario");
+    if (demoBadge) {
+      demoBadge.hidden = !isDemoMode();
+    }
     widget.hidden = false;
   }
 
@@ -806,7 +888,9 @@
       return;
     }
 
-    identity.textContent = "Publicando como: " + (username || "Usuario");
+    identity.textContent = "Publicando como: "
+      + (isDemoMode() ? "[Demo] " : "")
+      + (username || "Usuario");
   }
 
   function resetAuthState() {
@@ -821,6 +905,8 @@
     appState.quizSessions = {};
     appState.forumPosts = [];
     appState.remoteDataLoaded = false;
+    appState.isDemoUser = false;
+    appState.demoDiagnosticResults = [];
     appState.isSavingDiagnostic = false;
     appState.savingQuizStages = {};
     storage.setCurrentStorageUser("");
@@ -851,6 +937,7 @@
       document.body.classList.remove("stage-page-active");
       document.body.classList.remove("diagnosis-page-active");
       updateSessionWidget();
+      updateDemoModeNotice();
       handleGuideAfterSessionState(false);
       return;
     }
@@ -858,6 +945,7 @@
     accessScreen.hidden = true;
     document.body.classList.remove("access-required");
     updateSessionWidget();
+    updateDemoModeNotice();
     updateForumIdentity();
     renderForumComments();
     refreshUserScopedContent();
@@ -867,6 +955,7 @@
   async function loadSupabaseUserState(user) {
     var profileResponse;
     var progressResponse;
+    var username;
 
     appState.user = user;
 
@@ -880,6 +969,24 @@
       throw profileResponse.error;
     }
 
+    appState.profile = profileResponse.data;
+    username = (getCurrentUsername() || "").toLowerCase();
+    appState.isDemoUser = username === DEMO_USERNAME;
+    appState.demoDiagnosticResults = isDemoMode() ? readDemoDiagnosticResults() : [];
+    storage.setCurrentStorageUser(getCurrentUsername() || user.id);
+
+    if (isDemoMode()) {
+      appState.remoteProgress = normalizeProgressRow(getDefaultProgressRow());
+      appState.diagnosticAttempts = [];
+      appState.diagnosisResult = getLatestDemoDiagnosticResult();
+      appState.quizScores = {};
+      appState.quizAttemptsByStage = {};
+      await loadForumPosts();
+      appState.remoteDataLoaded = true;
+      setSyncNotice("");
+      return;
+    }
+
     progressResponse = await supabaseClient
       .from("progress")
       .select("user_id, diagnostic_completed, current_stage, completed_stages")
@@ -890,9 +997,7 @@
       throw progressResponse.error;
     }
 
-    appState.profile = profileResponse.data;
     appState.remoteProgress = normalizeProgressRow(progressResponse.data || getDefaultProgressRow());
-    storage.setCurrentStorageUser(getCurrentUsername() || user.id);
 
     if (!progressResponse.data) {
       await saveRemoteProgress(getDefaultProgressRow());
@@ -1210,6 +1315,10 @@
   }
 
   function getDiagnosticStatusText() {
+    if (isDemoMode()) {
+      return getLatestDemoDiagnosticResult() ? "Resultado demo disponible" : "Modo demostración";
+    }
+
     var hasInitial = Boolean(getDiagnosticAttemptByType("initial"));
     var hasFinal = Boolean(getDiagnosticAttemptByType("final"));
 
@@ -1418,6 +1527,10 @@
   }
 
   function getDiagnosticAttemptTitle(attemptType) {
+    if (attemptType === "demo") {
+      return "Diagnóstico de demostración";
+    }
+
     return attemptType === "final" ? "Segundo diagnóstico" : "Diagnóstico inicial";
   }
 
@@ -1479,6 +1592,27 @@
       panel.appendChild(createElement("h3", "", "Resultados del diagnóstico"));
     }
 
+    if (isDemoMode()) {
+      var latestDemoResult = getLatestDemoDiagnosticResult();
+
+      if (!latestDemoResult) {
+        panel.appendChild(createElement(
+          "p",
+          "empty-state",
+          "Aún no hay resultados de demostración. Realice un diagnóstico para generar una vista de ejemplo."
+        ));
+        return panel;
+      }
+
+      panel.appendChild(buildDiagnosticAttemptResultBlock(latestDemoResult));
+      panel.appendChild(createElement(
+        "p",
+        "diagnosis-result-note",
+        "Diagnóstico de demostración completado. Estos resultados son solo para presentación y no se guardaron como datos reales."
+      ));
+      return panel;
+    }
+
     if (!attempts.length) {
       panel.appendChild(createElement("p", "empty-state", "Aún no hay resultados registrados."));
       return panel;
@@ -1509,13 +1643,21 @@
 
   function renderDiagnosisSummary(container, result) {
     var nextAttemptType = getNextDiagnosticAttemptType();
-    var attemptsCount = (appState.diagnosticAttempts || []).length;
+    var attemptsCount = isDemoMode()
+      ? (appState.demoDiagnosticResults || []).length
+      : (appState.diagnosticAttempts || []).length;
     var hasResults = attemptsCount > 0;
     var card = createElement("article", "diagnosis-summary-card");
     var title = createElement("h3", "", data.diagnosis.title);
     var status = createElement("p", "stage-status", getDiagnosticStatusText());
     var description = createElement("p", "helper-text module-description text-justify", data.diagnosis.intro);
-    var attemptCount = createElement("p", "diagnosis-summary-meta", "Intentos registrados: " + attemptsCount + " de 2");
+    var attemptCount = createElement(
+      "p",
+      "diagnosis-summary-meta",
+      isDemoMode()
+        ? "Resultados de demostración generados: " + attemptsCount
+        : "Intentos registrados: " + attemptsCount + " de 2"
+    );
     var actions = createElement("div", "stage-actions");
     var buttonLabel = "Diagnóstico completado";
     var primaryButton;
@@ -1527,6 +1669,10 @@
 
     if (nextAttemptType === "final") {
       buttonLabel = "Realizar segundo diagnóstico";
+    }
+
+    if (nextAttemptType === "demo") {
+      buttonLabel = hasResults ? "Realizar diagnóstico nuevamente" : "Iniciar diagnóstico de demostración";
     }
 
     if (!nextAttemptType && hasResults) {
@@ -1551,7 +1697,7 @@
     card.appendChild(description);
     card.appendChild(attemptCount);
 
-    if (!nextAttemptType) {
+    if (!isDemoMode() && !nextAttemptType) {
       card.appendChild(buildFeedbackBox(
         "Diagnóstico completado",
         "Ya se registraron los dos intentos disponibles."
@@ -1649,7 +1795,7 @@
       return;
     }
 
-    if (getDiagnosticAttemptByType(session.attemptType)) {
+    if (!isDemoMode() && getDiagnosticAttemptByType(session.attemptType)) {
       session.feedback = "Este intento de diagnóstico ya fue registrado.";
       renderDiagnosis();
       return;
@@ -1702,6 +1848,29 @@
     if (submitButton) {
       submitButton.disabled = true;
       submitButton.textContent = "Guardando...";
+    }
+
+    if (isDemoMode()) {
+      var demoAttempt = {
+        id: "demo-" + Date.now(),
+        attemptType: "demo",
+        answers: payload,
+        score: totalScore,
+        maxScore: maxScore,
+        percentage: payload.percentage,
+        variableScores: variableScores,
+        createdAt: submittedAt
+      };
+
+      addDemoDiagnosticResult(demoAttempt);
+      appState.diagnosisResult = demoAttempt;
+      appState.isSavingDiagnostic = false;
+      session.saving = false;
+      session.submitted = true;
+      session.feedback = "Diagnóstico de demostración completado. Estos resultados son solo para presentación y no se guardaron como datos reales.";
+      setSyncNotice("");
+      renderDiagnosis();
+      return;
     }
 
     try {
@@ -1845,6 +2014,33 @@
     container.appendChild(questionCard);
   }
 
+  function buildDemoDiagnosisActions() {
+    var actions = createElement("div", "stage-actions");
+    var resultsButton = createElement("button", "primary-button", "Ver resultados");
+    var retryButton = createElement("button", "secondary-button", "Realizar diagnóstico nuevamente");
+    var backButton = createElement("button", "ghost-button", "Volver a módulos");
+
+    resultsButton.type = "button";
+    resultsButton.addEventListener("click", goToDiagnosisResults);
+
+    retryButton.type = "button";
+    retryButton.addEventListener("click", function () {
+      appState.activeDiagnosisAttempt = null;
+      renderDiagnosis();
+    });
+
+    backButton.type = "button";
+    backButton.addEventListener("click", function () {
+      appState.activeDiagnosisAttempt = null;
+      goToModules();
+    });
+
+    actions.appendChild(resultsButton);
+    actions.appendChild(retryButton);
+    actions.appendChild(backButton);
+    return actions;
+  }
+
   function renderDiagnosisDetail(container, result) {
     var detail = createElement("article", "stage-detail-view diagnosis-detail-view");
     var header = createElement("header", "stage-detail-header");
@@ -1872,10 +2068,25 @@
     header.appendChild(heading);
 
     if (session && session.submitted) {
-      mainColumn.appendChild(buildFeedbackBox(
-        "Diagnóstico enviado correctamente",
-        "Gracias por completar el instrumento."
-      ));
+      if (isDemoMode()) {
+        var latestDemoResult = getLatestDemoDiagnosticResult();
+
+        mainColumn.appendChild(buildFeedbackBox(
+          "Diagnóstico de demostración completado",
+          "Estos resultados son solo para presentación y no se guardaron como datos reales."
+        ));
+
+        if (latestDemoResult) {
+          mainColumn.appendChild(buildDiagnosticAttemptResultBlock(latestDemoResult));
+        }
+
+        mainColumn.appendChild(buildDemoDiagnosisActions());
+      } else {
+        mainColumn.appendChild(buildFeedbackBox(
+          "Diagnóstico enviado correctamente",
+          "Gracias por completar el instrumento."
+        ));
+      }
     } else if (!nextAttemptType) {
       mainColumn.appendChild(buildFeedbackBox(
         "Diagnóstico completado",
@@ -1891,9 +2102,15 @@
     sideColumn.appendChild(createElement("strong", "", "Resumen del diagnóstico"));
     sideColumn.appendChild(createElement("p", "", "Usuario: " + (getCurrentUsername() || "Usuario")));
     sideColumn.appendChild(createElement("p", "", "Estado: " + getDiagnosticStatusText()));
-    sideColumn.appendChild(createElement("p", "", "Intentos registrados: " + (appState.diagnosticAttempts || []).length + " de 2"));
+    sideColumn.appendChild(createElement(
+      "p",
+      "",
+      isDemoMode()
+        ? "Resultados demo generados: " + (appState.demoDiagnosticResults || []).length
+        : "Intentos registrados: " + (appState.diagnosticAttempts || []).length + " de 2"
+    ));
 
-    if ((appState.diagnosticAttempts || []).length) {
+    if ((isDemoMode() && getLatestDemoDiagnosticResult()) || (!isDemoMode() && (appState.diagnosticAttempts || []).length)) {
       var viewResultsButton = createElement("button", "secondary-button", "Ver resultados");
       viewResultsButton.type = "button";
       viewResultsButton.addEventListener("click", goToDiagnosisResults);
@@ -1938,7 +2155,9 @@
   function renderDiagnosis() {
     var section = byId("diagnostico");
     var container = byId("diagnosisContent");
-    var result = appState.diagnosisResult || storage.getDiagnosisResult();
+    var result = isDemoMode()
+      ? getLatestDemoDiagnosticResult()
+      : (appState.diagnosisResult || storage.getDiagnosisResult());
     var isDetail = isDiagnosisViewSelected();
     var isResultsView = isDiagnosisResultsViewSelected();
 
@@ -2020,6 +2239,7 @@
     var actions = createElement("div", "quiz-result-actions");
     var primaryButton;
     var secondaryButton;
+    var tertiaryButton;
 
     box.appendChild(createElement("h4", "", feedback.title));
     box.appendChild(createElement("p", "", feedback.message));
@@ -2029,7 +2249,29 @@
       box.appendChild(createElement("span", "", "Nota mínima requerida: " + data.settings.minimumScore + "%"));
     }
 
-    if (feedback.passed) {
+    if (feedback.demoMode) {
+      primaryButton = createElement("button", "primary-button", "Reintentar evaluación");
+      primaryButton.type = "button";
+      primaryButton.addEventListener("click", function () {
+        latestStageFeedback = null;
+        resetQuizSession(feedback.stageId);
+        renderLearningPath();
+      });
+
+      secondaryButton = createElement("button", "secondary-button", "Volver a materiales");
+      secondaryButton.type = "button";
+      secondaryButton.addEventListener("click", function () {
+        var materialSection = document.querySelector(".stage-material-section");
+
+        if (materialSection) {
+          materialSection.scrollIntoView({ block: "start", behavior: "smooth" });
+        }
+      });
+
+      tertiaryButton = createElement("button", "ghost-button", "Volver a la ruta");
+      tertiaryButton.type = "button";
+      tertiaryButton.addEventListener("click", goToRouteMap);
+    } else if (feedback.passed) {
       primaryButton = createElement("button", "primary-button", "Continuar");
       primaryButton.type = "button";
       primaryButton.addEventListener("click", goToRouteMap);
@@ -2059,6 +2301,9 @@
 
     actions.appendChild(primaryButton);
     actions.appendChild(secondaryButton);
+    if (tertiaryButton) {
+      actions.appendChild(tertiaryButton);
+    }
     box.appendChild(actions);
     return box;
   }
@@ -2076,6 +2321,10 @@
   }
 
   function getStageStatus(stage, progress) {
+    if (isDemoMode()) {
+      return "Disponible en modo demostración";
+    }
+
     if (!progress.unlockedStages.includes(stage.id)) {
       return "Bloqueada";
     }
@@ -2293,7 +2542,19 @@
     var session = getQuizSession(stage);
 
     if (!quiz.questions || !quiz.questions.length) {
-      form.appendChild(createElement("p", "empty-state", "No hay evaluación configurada para esta etapa."));
+      var materialButton = createElement("button", "secondary-button", "Volver a materiales");
+
+      materialButton.type = "button";
+      materialButton.addEventListener("click", function () {
+        var materialSection = document.querySelector(".stage-material-section");
+
+        if (materialSection) {
+          materialSection.scrollIntoView({ block: "start", behavior: "smooth" });
+        }
+      });
+
+      form.appendChild(createElement("p", "empty-state", "La evaluación de esta etapa aún no ha sido cargada."));
+      form.appendChild(materialButton);
       return form;
     }
 
@@ -2433,7 +2694,7 @@
       return;
     }
 
-    if (isStageCompleted(stage.id, progress)) {
+    if (!isDemoMode() && isStageCompleted(stage.id, progress)) {
       latestStageFeedback = {
         stageId: stage.id,
         title: "Esta etapa ya fue completada",
@@ -2522,6 +2783,25 @@
       answers: answersPayload,
       createdAt: submittedAt
     };
+
+    if (isDemoMode()) {
+      latestStageFeedback = {
+        stageId: stage.id,
+        type: "quiz-result",
+        demoMode: true,
+        title: passed ? "Evaluación aprobada en modo demostración" : "Resultado de la evaluación",
+        message: passed
+          ? "Evaluación aprobada en modo demostración. Su resultado fue de " + score + "%. Este resultado no se guardó como dato real."
+          : "No alcanzó la nota mínima. Su resultado fue de " + score + "%. La nota mínima es " + minimumScore + "%. Puede intentarlo nuevamente.",
+        score: score,
+        passed: passed
+      };
+      setSyncNotice("");
+      appState.savingQuizStages[stage.id] = false;
+      resetQuizSession(stage.id);
+      renderLearningPath();
+      return;
+    }
 
     if (!passed) {
       latestStageFeedback = {
@@ -2723,16 +3003,21 @@
 
     var form = event.currentTarget;
     var name = getCurrentUsername() || "Usuario";
+    var displayName = isDemoMode() ? "[Demo] " + name : name;
     var comment = form.elements.comment.value.trim();
 
     if (!comment) {
       return;
     }
 
+    if (isDemoMode() && !window.confirm("Este aporte se publicará como demostración.")) {
+      return;
+    }
+
     try {
       var forumResponse = await supabaseClient.from("forum_posts").insert({
         user_id: appState.user.id,
-        display_name: name,
+        display_name: displayName,
         content: comment
       });
 
@@ -2813,7 +3098,16 @@
         try {
           storage.clearTestData();
 
-          if (appState.user) {
+          if (isDemoMode()) {
+            try {
+              window.sessionStorage.removeItem(DEMO_DIAGNOSTIC_STORAGE_KEY);
+            } catch (storageError) {
+              appState.demoDiagnosticResults = [];
+            }
+            appState.demoDiagnosticResults = [];
+          }
+
+          if (appState.user && !isDemoMode()) {
             await saveRemoteProgress({
               diagnostic_completed: false,
               current_stage: "A",
