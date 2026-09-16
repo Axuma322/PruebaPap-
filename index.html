@@ -34,15 +34,21 @@
           <input id="registerUsername" name="username" type="text" autocomplete="username" minlength="3" aria-describedby="registerUsernameHelp" required>
           <span class="field-help" id="registerUsernameHelp">Ejemplo: gabi01, profe_1 o estudiante-01</span>
         </label>
-        <label>
-          Contraseña
-          <input id="registerPassword" name="password" type="password" autocomplete="new-password" aria-describedby="registerPasswordHelp" required>
+        <div class="access-field">
+          <label for="registerPassword">Contraseña</label>
+          <span class="password-field">
+            <input id="registerPassword" name="password" type="password" autocomplete="new-password" aria-describedby="registerPasswordHelp" required>
+            <button class="password-toggle" type="button" data-password-toggle data-target="registerPassword" aria-label="Mostrar contraseña">Ver</button>
+          </span>
           <span class="field-help" id="registerPasswordHelp">Mínimo 8 caracteres, una mayúscula, una minúscula, un número y un símbolo. Ejemplo: Gabi2003*</span>
-        </label>
-        <label>
-          Confirmar contraseña
-          <input id="registerPasswordConfirm" name="passwordConfirm" type="password" autocomplete="new-password" required>
-        </label>
+        </div>
+        <div class="access-field">
+          <label for="registerPasswordConfirm">Confirmar contraseña</label>
+          <span class="password-field">
+            <input id="registerPasswordConfirm" name="passwordConfirm" type="password" autocomplete="new-password" required>
+            <button class="password-toggle" type="button" data-password-toggle data-target="registerPasswordConfirm" aria-label="Mostrar contraseña">Ver</button>
+          </span>
+        </div>
         <p class="access-message" id="registerMessage" aria-live="polite"></p>
         <button class="primary-button" type="submit">Crear cuenta</button>
       </form>
@@ -53,10 +59,13 @@
           <input id="loginUsername" name="username" type="text" autocomplete="username" minlength="3" aria-describedby="loginUsernameHelp" required>
           <span class="field-help" id="loginUsernameHelp">Ejemplo: gabi01, profe_1 o estudiante-01</span>
         </label>
-        <label>
-          Contraseña
-          <input id="loginPassword" name="password" type="password" autocomplete="current-password" required>
-        </label>
+        <div class="access-field">
+          <label for="loginPassword">Contraseña</label>
+          <span class="password-field">
+            <input id="loginPassword" name="password" type="password" autocomplete="current-password" required>
+            <button class="password-toggle" type="button" data-password-toggle data-target="loginPassword" aria-label="Mostrar contraseña">Ver</button>
+          </span>
+        </div>
         <p class="access-message" id="loginMessage" aria-live="polite"></p>
         <button class="primary-button" type="submit">Entrar</button>
       </form>

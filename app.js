@@ -1226,7 +1226,30 @@
     }
   }
 
+  function setupPasswordToggles() {
+    var toggles = document.querySelectorAll("[data-password-toggle]");
+
+    toggles.forEach(function (button) {
+      var targetId = button.dataset.target;
+      var input = targetId ? document.getElementById(targetId) : null;
+
+      if (!input || button.dataset.passwordToggleReady === "true") {
+        return;
+      }
+
+      button.dataset.passwordToggleReady = "true";
+      button.addEventListener("click", function () {
+        var isHidden = input.type === "password";
+
+        input.type = isHidden ? "text" : "password";
+        button.textContent = isHidden ? "Ocultar" : "Ver";
+        button.setAttribute("aria-label", isHidden ? "Ocultar contraseña" : "Mostrar contraseña");
+      });
+    });
+  }
+
   async function setupAccessGate() {
+    setupPasswordToggles();
     byId("registerTab").addEventListener("click", function () {
       setAccessMode("register");
     });

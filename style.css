@@ -215,7 +215,8 @@ button {
   gap: 13px;
 }
 
-.access-form label {
+.access-form label,
+.access-field {
   color: var(--text);
   display: grid;
   font-weight: 800;
@@ -226,13 +227,47 @@ button {
   background: var(--surface-soft);
   border: 1px solid var(--line);
   border-radius: 6px;
+  box-sizing: border-box;
   color: var(--text);
   min-height: 44px;
   padding: 10px 12px;
+  width: 100%;
 }
 
 .access-form input:focus {
   border-color: var(--accent-blue);
+  outline: 3px solid rgba(49, 95, 138, 0.14);
+}
+
+.password-field {
+  display: block;
+  position: relative;
+}
+
+.password-field input {
+  padding-right: 84px;
+}
+
+.password-toggle {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--accent-blue);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  min-height: 32px;
+  padding: 5px 10px;
+  position: absolute;
+  right: 7px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.password-toggle:hover,
+.password-toggle:focus-visible {
+  background: #edf5fb;
   outline: 3px solid rgba(49, 95, 138, 0.14);
 }
 
