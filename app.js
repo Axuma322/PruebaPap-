@@ -2276,6 +2276,10 @@
         "",
         blockScore.score + " / " + blockScore.maxScore + " · " + blockScore.percentage + "%"
       ));
+      if (blockScore.classification) {
+        item.appendChild(createElement("span", "", blockScore.classification));
+        item.appendChild(createElement("p", "", blockScore.feedback));
+      }
       blockList.appendChild(item);
     });
 
@@ -2283,6 +2287,9 @@
 
     if (feedback.generalFeedback) {
       box.appendChild(createElement("p", "", feedback.generalFeedback));
+    }
+    if (feedback.finalGuidance) {
+      box.appendChild(createElement("p", "helper-text", feedback.finalGuidance));
     }
   }
 
@@ -2363,6 +2370,21 @@
   }
 
   function buildStageFeedback(stageId) {
+    // Only the new B instrument is reconstructed as a Likert result.
+    // Legacy B records remain intact and retain their previous completion policy.
+    var saved = appState.quizAttemptsByStage[stageId];
+    if (stageId === "B" && saved && saved.answers
+      && saved.answers.instrumentVersion === "B-autoevaluacion-v1"
+      && (!latestStageFeedback || latestStageFeedback.stageId !== stageId)) {
+      var result = saved.answers;
+      return buildQuizResultCard({
+        stageId: stageId, type: "quiz-result", evaluationKind: "likert",
+        title: "Autoevaluación completada", message: "La autoevaluación fue registrada.",
+        score: result.percentage, totalScore: result.totalScore, maxScore: result.maxScore,
+        classification: result.classification, generalFeedback: result.generalFeedback,
+        finalGuidance: result.finalGuidance, blockScores: result.blockScores, passed: true
+      });
+    }
     if (!latestStageFeedback || latestStageFeedback.stageId !== stageId) {
       return null;
     }
@@ -2585,6 +2607,9 @@
           link.href = href;
           link.target = "_blank";
           link.rel = "noopener noreferrer";
+          if (material.download) {
+            link.setAttribute("download", href.split("/").pop());
+          }
           card.appendChild(link);
         } else {
           card.appendChild(createElement("p", "helper-text", "Este recurso se agregará en una siguiente versión."));
@@ -2647,6 +2672,30 @@
     var form = createElement("form", "evaluation-form likert-form");
     var scale = getLikertScale(quiz);
     var blocks = getLikertBlocks(quiz);
+    var completionOnly = stage.id === "B" && quiz.completionOnly;
+    var counter;
+    var bar;
+
+    if (completionOnly) {
+      form.noValidate = true;
+      form.appendChild(createElement("h4", "", quiz.title));
+      form.appendChild(createElement("p", "helper-text", "Submódulo: " + quiz.subtitle));
+      counter = createElement("p", "helper-text", "Respondidos: 0 / 20");
+      counter.setAttribute("aria-live", "polite");
+      bar = document.createElement("progress");
+      bar.max = 20;
+      bar.value = 0;
+      bar.setAttribute("aria-label", "Ítems respondidos");
+      form.appendChild(counter);
+      form.appendChild(bar);
+      form.addEventListener("change", function (event) {
+        var count = form.querySelectorAll("input:checked").length;
+        counter.textContent = "Respondidos: " + count + " / 20";
+        bar.value = count;
+        var row = event.target.closest("fieldset");
+        if (row) { row.classList.remove("is-unanswered"); row.removeAttribute("aria-invalid"); }
+      });
+    }
 
     if (quiz.description) {
       form.appendChild(createElement("p", "helper-text", quiz.description));
@@ -2663,6 +2712,9 @@
       var orderedItemIds = session.blockItemOrders[block.id] || [];
 
       section.appendChild(createElement("h4", "", block.title));
+      if (completionOnly) {
+        section.appendChild(createElement("p", "helper-text", block.description));
+      }
       section.appendChild(createElement("p", "helper-text", "Puntaje máximo del bloque: " + (block.maxScore || 20)));
 
       (block.items || []).forEach(function (item, itemIndex) {
@@ -2704,8 +2756,42 @@
       form.appendChild(section);
     });
 
-    form.appendChild(createElement("button", "primary-button", "Enviar autoevaluación"));
+    form.appendChild(createElement("button", "primary-button", completionOnly ? "Calcular y guardar resultado" : "Enviar autoevaluación"));
+    if (completionOnly) {
+      var warning = createElement("p", "helper-text", "");
+      warning.setAttribute("role", "alert");
+      warning.classList.add("likert-warning");
+      form.appendChild(warning);
+      var reset = createElement("button", "secondary-button", "Reiniciar respuestas");
+      reset.type = "button";
+      reset.addEventListener("click", function () {
+        if (appState.savingQuizStages[stage.id] || !window.confirm("¿Desea borrar todas las respuestas?")) { return; }
+        form.reset();
+        counter.textContent = "Respondidos: 0 / 20";
+        bar.value = 0;
+        warning.textContent = "";
+        form.querySelectorAll(".is-unanswered").forEach(function (row) {
+          row.classList.remove("is-unanswered"); row.removeAttribute("aria-invalid");
+        });
+      });
+      form.appendChild(reset);
+    }
     form.addEventListener("submit", function (event) {
+      if (completionOnly) {
+        var missing = [];
+        form.querySelectorAll("fieldset").forEach(function (row) {
+          var unanswered = !row.querySelector("input:checked");
+          row.classList.toggle("is-unanswered", unanswered);
+          if (unanswered) { row.setAttribute("aria-invalid", "true"); missing.push(row); }
+        });
+        warning.textContent = missing.length ? "Faltan ítems por responder. Están marcados en rojo." : "";
+        if (missing.length) {
+          event.preventDefault();
+          missing[0].scrollIntoView({ block: "center", behavior: "smooth" });
+          missing[0].querySelector("input").focus({ preventScroll: true });
+          return;
+        }
+      }
       handleEvaluationSubmit(event, stage);
     });
 
@@ -2809,7 +2895,7 @@
     materialSection.appendChild(createElement("h3", "", "Materiales de la etapa"));
     materialSection.appendChild(buildStageMaterials(stage));
 
-    evaluationSection.appendChild(createElement("h3", "", "Mini evaluación"));
+    evaluationSection.appendChild(createElement("h3", "", stage.id === "B" ? "Autoevaluación del desempeño directivo" : "Mini evaluación"));
 
     if (feedback) {
       evaluationSection.appendChild(feedback);
@@ -2818,7 +2904,7 @@
     if (isStageCompleted(stage.id, progress)) {
       evaluationSection.appendChild(buildFeedbackBox(
         "Esta etapa ya fue completada",
-        "La mini evaluación de esta etapa ya fue registrada."
+        stage.id === "B" ? "La evaluación de esta etapa ya fue registrada." : "La mini evaluación de esta etapa ya fue registrada."
       ));
     } else {
       evaluationSection.appendChild(buildStageQuizForm(stage));
@@ -2861,6 +2947,7 @@
     var scaleMap = {};
     var submittedAt = new Date().toISOString();
     var minimumScore = quiz.passingScore || data.settings.minimumScore;
+    var completionOnly = stage.id === "B" && quiz.completionOnly;
     var formData;
     var totalScore = 0;
     var maxScore = quiz.maxScore || 0;
@@ -2938,12 +3025,16 @@
       });
 
       maxScore += quiz.maxScore ? 0 : blockMaxScore;
+      var blockPercentage = blockMaxScore ? Math.round((blockScore / blockMaxScore) * 100) : 0;
+      var blockClassification = getLikertClassification(quiz, blockPercentage);
       blockScores.push({
         id: block.id,
         title: block.title,
         score: blockScore,
         maxScore: blockMaxScore,
-        percentage: blockMaxScore ? Math.round((blockScore / blockMaxScore) * 100) : 0
+        percentage: blockPercentage,
+        classification: completionOnly ? blockClassification.label : undefined,
+        feedback: completionOnly ? block.feedback[blockClassification.key] : undefined
       });
     });
 
@@ -2967,7 +3058,8 @@
     }
 
     percentage = maxScore ? Math.round((totalScore / maxScore) * 100) : 0;
-    passed = percentage >= minimumScore;
+    // For B, passed means all items were completed, never academic approval.
+    passed = completionOnly || percentage >= minimumScore;
     classification = getLikertClassification(quiz, percentage);
     answersPayload = {
       evaluationType: "likert",
@@ -2983,6 +3075,13 @@
       blockScores: blockScores,
       items: selectedItems
     };
+    if (completionOnly) {
+      answersPayload.instrumentVersion = quiz.instrumentVersion;
+      answersPayload.completionOnly = true;
+      answersPayload.passedMeaning = "completed";
+      answersPayload.generalFeedback = classification.feedback;
+      answersPayload.finalGuidance = quiz.finalGuidance;
+    }
     attempt = {
       id: String(Date.now()),
       stageId: stage.id,
@@ -3002,13 +3101,14 @@
       message: passed
         ? (isDemoMode()
           ? "Autoevaluación completada en modo demostración. Este resultado no se guardó como dato real."
-          : "La etapa D fue completada correctamente.")
+          : (completionOnly ? "La autoevaluación B fue completada. La etapa C está disponible." : "La etapa D fue completada correctamente."))
         : "No alcanzó la nota mínima. Su resultado fue de " + percentage + "%. La nota mínima es " + minimumScore + "%. Puede intentarlo nuevamente.",
       score: percentage,
       totalScore: totalScore,
       maxScore: maxScore,
       classification: classification.label,
       generalFeedback: classification.feedback,
+      finalGuidance: quiz.finalGuidance,
       blockScores: blockScores,
       passed: passed
     };

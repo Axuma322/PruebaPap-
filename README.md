@@ -52,9 +52,9 @@ Ofrecer una herramienta digital que permita:
 |---|---|
 | Acceso con usuario y contraseña | Registro, inicio y cierre de sesión con Supabase Auth; validación de usuario, contraseña y confirmación. |
 | Diagnóstico DNA | 30 ítems situacionales, dos intentos para usuarios reales y resultados generales y por variable. |
-| Ruta RFAN | Etapas A–D, acceso progresivo y reintentos hasta aprobar con al menos 70 %. |
-| Recursos formativos | PDFs en las etapas A, C y D; la etapa B aún no contiene PDFs. |
-| Evaluaciones | Selección múltiple en A–C y autoevaluación Likert en D, con retroalimentación. |
+| Ruta RFAN | Etapas A–D y acceso progresivo; A, C y D requieren al menos 70 %, mientras B se completa al enviar sus 20 ítems. |
+| Recursos formativos | PDFs en las cuatro etapas y plantilla Word editable en B. |
+| Evaluaciones | Selección múltiple en A y C; autoevaluaciones Likert en B y D, con retroalimentación. |
 | Persistencia del progreso | Diagnósticos, intentos y avance en Supabase, con caché local por usuario. |
 | Foro COPEI | Aportes compartidos con autor y fecha, almacenados en Supabase. |
 | Modo demostración | Recorrido libre para el perfil `demo`, sin guardar diagnósticos ni evaluaciones como datos reales. |
@@ -75,18 +75,26 @@ El usuario puede consultar su puntuación global, porcentajes por variable y ret
 
 ### RFAN · Ruta de Formación Adaptativa en Neuroliderazgo
 
-Organiza la formación en cuatro etapas. El diagnóstico inicial habilita el recorrido para usuarios reales y la aprobación de cada etapa permite avanzar a la siguiente. La adaptación implementada consiste en el desbloqueo según el progreso; los contenidos de las etapas son comunes.
+Organiza la formación en cuatro etapas. El diagnóstico inicial habilita el recorrido para usuarios reales y la finalización de cada etapa según su política permite avanzar a la siguiente. La adaptación implementada consiste en el desbloqueo según el progreso; los contenidos de las etapas son comunes.
 
 | Etapa | Tema | Recursos y evaluación |
 |---|---|---|
 | **A** | Fundamentos de neuroeducación y gestión directiva | PDFs sobre aprendizaje, neurodiversidad, neurociencias y DUA; evaluación de selección múltiple. |
-| **B** | Neuroliderazgo, motivación y autorregulación | Contenido introductorio y evaluación de selección múltiple; materiales PDF pendientes. |
+| **B** | Neuroliderazgo, motivación y autorregulación | Cinco PDFs, una plantilla Word editable y autoevaluación Likert de 20 ítems. |
 | **C** | Modelo SCARF aplicado a la gestión educativa | PDFs de neuroliderazgo y mejora organizacional; actividad de análisis y evaluación de selección múltiple. |
 | **D** | Comunidad, evidencia y mejora institucional | PDFs de comunidad, evidencia, liderazgo y mejora continua; autoevaluación Likert. |
 
 La etapa D contiene **20 ítems en cuatro bloques**: Comunidad, Evidencia Institucional, Mejora Continua y Aplicación Integrada. Su escala va de **Nunca (1)** a **Siempre (4)**. Presenta resultados por bloque y una clasificación general: Prioritario, En desarrollo o Consolidado. Aunque es una autoevaluación sin respuestas correctas o incorrectas, el flujo utiliza un mínimo del **70 %** para completar la etapa.
 
 Los materiales se registran explícitamente en `data.js`; añadir un PDF a una carpeta requiere actualizar también ese catálogo. Las carpetas incluyen archivos de evaluación `.txt` como referencia; las evaluaciones que ejecuta la aplicación están definidas en JavaScript.
+
+### Política y persistencia de la autoevaluación B
+
+La etapa B utiliza el instrumento `B-autoevaluacion-v1`: cuatro dimensiones de cinco ítems, escala fija de 1 a 4 y máximo global de 80 puntos. Se completa al enviar las 20 respuestas, independientemente del porcentaje. Los límites de 70 % y 90 % solo clasifican los resultados.
+
+En `quiz_attempts`, `stage_key` sigue siendo `B` y `score` guarda el porcentaje. Para este instrumento, **`passed: true` significa completado**, no aprobación de conocimientos. `answers` conserva versión, respuestas, puntuación global, resultados y orientación por dimensión. Después se actualiza `progress` para completar B y habilitar C. Al recargar se recupera el resultado guardado sin insertar otro intento.
+
+Los registros de la antigua evaluación B se conservan y mantienen su estado previo de finalización. No se migran ni se reinterpretan como este instrumento; si se necesita que participantes con B ya completada respondan el nuevo cuestionario, hace falta acordar una política de migración. No se han realizado cambios de esquema ni eliminaciones de datos.
 
 ### COPEI · Comunidad de Práctica y Evidencia Institucional
 
@@ -134,7 +142,7 @@ PruebaPap-/
     ├── cerebro.png            # Imagen utilizada por la interfaz
     └── materiales/
         ├── etapa-a/           # PDFs y referencia de evaluación
-        ├── etapa-b/           # Referencia de evaluación; sin PDFs
+        ├── etapa-b/           # Cinco PDFs, plantilla DOCX y fuente de autoevaluación
         ├── etapa-c/           # PDFs y referencia de evaluación
         └── etapa-d/           # PDFs y referencia de evaluación
 ```
@@ -210,7 +218,7 @@ Su aporte consiste en articular reconocimiento de necesidades, formación autoge
 
 Mejoras propuestas, aún no presentadas como funcionalidades implementadas:
 
-- Completar los materiales PDF de la etapa B y revisar duplicados del catálogo.
+- Revisar duplicados del catálogo de materiales.
 - Incorporar capturas reales de la interfaz para ampliar la presentación del portafolio.
 - Versionar el esquema SQL y las políticas de acceso para facilitar instalaciones independientes.
 - Fortalecer la configuración del perfil demo y la separación de sus publicaciones en el foro.

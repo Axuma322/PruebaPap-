@@ -921,6 +921,79 @@
     }
   };
 
+  // Fuente literal: assets/materiales/etapa-b/Evaluacion_B_limpia.txt.
+  var stageBBlocks = [
+  {id:"A", name:"Neuroliderazgo y clima social",
+   desc:"Gestión de los dominios sociales de amenaza y recompensa (modelo SCARF).",
+   items:[
+    "Antes de comunicar un cambio, anticipo cómo puede afectar la percepción de estatus, certeza, autonomía, relación y justicia del personal.",
+    "Reconozco de forma específica y oportuna los aportes del personal docente.",
+    "Hago las observaciones o correcciones de manera privada y respetuosa, no frente al grupo.",
+    "Comunico con claridad el propósito, los criterios y los plazos de las decisiones institucionales.",
+    "Aplico las normas y la distribución de responsabilidades con criterios transparentes y equitativos."]},
+  {id:"B", name:"Motivación del equipo docente",
+   desc:"Apoyo a la autonomía, la competencia y la relación (teoría de la autodeterminación).",
+   items:[
+    "Ofrezco al personal margen de decisión sobre cómo alcanzar las metas acordadas.",
+    "Explico el sentido pedagógico de las directrices, más allá de su carácter obligatorio.",
+    "Brindo retroalimentación específica que ayuda al personal a mejorar su práctica.",
+    "Promuevo espacios de trabajo colaborativo y de intercambio de buenas prácticas entre docentes.",
+    "Evito depender de premios, sanciones o presión como principales recursos para lograr el cumplimiento."]},
+  {id:"C", name:"Autorregulación emocional",
+   desc:"Reconocimiento y regulación de las propias emociones en la gestión.",
+   items:[
+    "Identifico las señales corporales y emocionales de mi propio estrés antes de que afecten mis decisiones.",
+    "Hago una pausa antes de responder en situaciones de tensión o confrontación.",
+    "Puedo nombrar con precisión la emoción que experimento en una situación difícil.",
+    "Reinterpreto las críticas o conflictos buscando su causa, en lugar de tomarlos como ataques personales.",
+    "Después de una situación difícil, reflexiono sobre mi reacción y lo que podría hacer distinto."]},
+  {id:"D", name:"Funciones ejecutivas y autocuidado",
+   desc:"Condiciones que protegen la capacidad de decidir con claridad.",
+   items:[
+    "Organizo mi agenda priorizando lo importante sobre lo urgente.",
+    "Reservo tiempo para decisiones complejas cuando tengo la energía y la concentración necesarias.",
+    "Delego o distribuyo responsabilidades para evitar la sobrecarga de la dirección.",
+    "Cuido mi descanso, mi sueño y mi actividad física como parte de mi responsabilidad directiva.",
+    "Ajusto mis planes con flexibilidad cuando cambian las condiciones, sin perder de vista las metas."]}
+];
+  var stageBMessages = {
+  A:{c:"Gestiona con conciencia el impacto social de sus decisiones.",d:"Fortalezca el análisis SCARF previo a comunicar cambios.",p:"Priorice el reconocimiento, la claridad y la equidad en la comunicación directiva."},
+  B:{c:"Su gestión favorece una motivación autónoma del equipo.",d:"Amplíe la autonomía y la retroalimentación específica al personal.",p:"Revise el peso del control externo y diseñe acciones de apoyo a la autonomía, competencia y relación."},
+  C:{c:"Muestra una autorregulación emocional sólida bajo presión.",d:"Incorpore la pausa y el etiquetado emocional de forma sistemática.",p:"Use la bitácora de autorregulación con frecuencia y considere acompañamiento."},
+  D:{c:"Protege las condiciones que sostienen sus funciones ejecutivas.",d:"Revise la distribución de tareas y los espacios de recuperación.",p:"La sobrecarga puede estar afectando sus decisiones: priorice delegación, descanso y organización."}
+};
+  rfanMaterials.B = [
+    pdfMaterial("Lectura introductoria: Neuroliderazgo, motivación y autorregulación", "assets/materiales/etapa-b/01_Lectura_introductoria_Neuroliderazgo_motivacion_autorregulacion.pdf", "Lectura introductoria del submódulo."),
+    pdfMaterial("Caso práctico: La reunión del jueves", "assets/materiales/etapa-b/02_Caso_practico_La_reunion_del_jueves.pdf", "Caso para la reflexión directiva."),
+    pdfMaterial("Consulta 1: Bases neurocientíficas del neuroliderazgo", "assets/materiales/etapa-b/03_Consulta_1_Neuroliderazgo.pdf", "Documento de consulta."),
+    pdfMaterial("Consulta 2: Motivación en equipos docentes", "assets/materiales/etapa-b/04_Consulta_2_Motivacion_equipos_docentes.pdf", "Documento de consulta."),
+    pdfMaterial("Consulta 3: Autorregulación directiva", "assets/materiales/etapa-b/05_Consulta_3_Autorregulacion_directiva.pdf", "Documento de consulta."),
+    { title: "Plantilla: Bitácora y plan de motivación", type: "DOCX", href: "assets/materiales/etapa-b/06_Plantilla_Bitacora_y_Plan_de_motivacion.docx", description: "Documento editable para registrar reflexiones y acciones de mejora.", buttonLabel: "Descargar plantilla Word", download: true }
+  ];
+  rfanQuizzes.B = {
+    type: "likert",
+    instrumentVersion: "B-autoevaluacion-v1",
+    completionOnly: true,
+    title: "Autoevaluación del desempeño directivo",
+    subtitle: "Neuroliderazgo, motivación y autorregulación",
+    description: "Lea cada enunciado y seleccione la frecuencia con que describe su práctica directiva en los últimos tres meses. No hay respuestas correctas o incorrectas: el propósito es identificar fortalezas y prioridades de mejora.",
+    maxScore: 80,
+    scale: [
+      { value: 1, label: "Nunca" }, { value: 2, label: "A veces" },
+      { value: 3, label: "Frecuentemente" }, { value: 4, label: "Siempre" }
+    ],
+    classifications: [
+      { min: 90, key: "c", label: "Consolidado", feedback: "Su práctica directiva integra de forma consistente el neuroliderazgo, la motivación del equipo y la autorregulación. Sostenga estas prácticas y compártalas con su equipo." },
+      { min: 70, key: "d", label: "En desarrollo", feedback: "Su práctica muestra avances importantes. Enfoque su plan de mejora en las dimensiones clasificadas como En desarrollo o Prioritario." },
+      { min: 0, key: "p", label: "Prioritario", feedback: "Se recomienda priorizar este submódulo: revise la lectura introductoria y los documentos de consulta, y elabore un plan de mejora con la plantilla del submódulo." }
+    ],
+    finalGuidance: "Criterios de clasificación: Consolidado ≥ 90 % · En desarrollo 70 % – 89 % · Prioritario < 70 %. Registre las dimensiones prioritarias en el Plan de motivación del equipo docente y en la Bitácora de autorregulación directiva.",
+    blocks: stageBBlocks.map(function (block) {
+      return { id: block.id, title: block.name, description: block.desc, maxScore: 20,
+        feedback: stageBMessages[block.id],
+        items: block.items.map(function (text, index) { return { id: "B-" + block.id + index, text: text }; }) };
+    })
+  };
   window.APP_DATA.learningPath.stages.forEach(function (stage) {
     if (rfanMaterials[stage.id]) {
       stage.materials = rfanMaterials[stage.id];

@@ -1294,7 +1294,22 @@ button {
 }
 
 .likert-form {
+  /* B uses the existing Likert layout and native accessible progress control. */
   gap: 20px;
+}
+
+.likert-form progress {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.likert-item.is-unanswered {
+  border-color: #a83232;
+  box-shadow: 0 0 0 1px #a83232;
+}
+
+.likert-warning {
+  color: #a83232;
 }
 
 .likert-block {
