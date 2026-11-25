@@ -41,7 +41,7 @@ Crear una API key con permiso de envío y configurar en **Supabase → Edge Func
 | `ALLOWED_ORIGINS` | Orígenes exactos separados por comas, sin ruta ni `/` final; por ejemplo `https://planne.dev,http://localhost:8000`, ajustados al sitio real |
 | `CERTIFICATE_INSTITUTION` | Opcional: encabezado del PDF |
 | `CERTIFICATE_TEXT` | Opcional: texto institucional/formativo del PDF |
-| `CERTIFICATE_SIGNATURE` | Opcional: etiqueta bajo el espacio de firma; predeterminado `Responsable: Esteban Porras Murillo · Cédula: 503180530` |
+| `CERTIFICATE_SIGNATURE` | Opcional: texto del responsable, sin línea ni espacio para firmar; predeterminado `Responsable: Esteban Porras Murillo · Cédula: 503180530` |
 
 `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` se leen exclusivamente del entorno servidor de Supabase. Nunca copiar la clave privada al frontend. No hace falta dar al navegador una clave de Resend.
 

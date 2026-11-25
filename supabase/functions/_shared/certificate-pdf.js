@@ -92,8 +92,7 @@
     centered(config.certificateText || "ha completado el recorrido educativo participativo de PLANNE, que integra diagnóstico, neuroeducación, neuroliderazgo y mejora institucional.", 276, regular, 14, 11, 4, ink);
     var dateText = date.toLocaleDateString("es-CR", { year: "numeric", month: "long", day: "numeric", timeZone: "America/Costa_Rica" });
     centered("Fecha de finalización: " + dateText, 175, regular, 12, 12, 1, deep);
-    page.drawLine({ start: { x: 285, y: 122 }, end: { x: 557, y: 122 }, color: gold, thickness: 0.8 });
-    centered(config.signatureLabel || "Responsable: Esteban Porras Murillo · Cédula: 503180530", 104, regular, 10, 9, 1, muted);
+    centered(config.signatureLabel || "Responsable: Esteban Porras Murillo · Cédula: 503180530", 122, regular, 10, 9, 1, muted);
     centered("Código: " + text(request.certificate_code), 74, regular, 9, 8, 1, deep);
     centered(request.demo ? "MUESTRA DE DEMOSTRACIÓN · SIN VALIDEZ" : "Constancia participativa de finalización. No constituye una acreditación oficial.", 49, regular, 8, 8, 1, muted);
     return doc.saveAsBase64({ dataUri: false, useObjectStreams: false });
