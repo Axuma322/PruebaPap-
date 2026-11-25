@@ -214,6 +214,8 @@ Su aporte consiste en articular reconocimiento de necesidades, formación autoge
 
 ## Estado del proyecto y próximos pasos
 
+La interfaz utiliza una paleta institucional azul rey. El cierre del programa ofrece solicitud de certificado al completar **DNA inicial y final y las etapas A–D**. Incluye vista imprimible, aislamiento demo y preparación del envío por correo. Para activar el guardado y envío reales, revisar la [configuración de certificados en Supabase](supabase/README.md): requiere ejecutar la migración nueva, configurar secretos y desplegar la Edge Function.
+
 **Estado:** implementación académica con tres módulos desarrollados e integración de Supabase en el código. La operación completa depende de la configuración y disponibilidad del backend.
 
 Mejoras propuestas, aún no presentadas como funcionalidades implementadas:

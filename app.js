@@ -894,6 +894,7 @@
   }
 
   function resetAuthState() {
+    if (window.PLANNECertificates) { window.PLANNECertificates.reset(); }
     appState.user = null;
     appState.profile = null;
     appState.remoteProgress = null;
@@ -2176,6 +2177,7 @@
   }
 
   function renderDiagnosis() {
+    refreshCertificateCompletion();
     var section = byId("diagnostico");
     var container = byId("diagnosisContent");
     var result = isDemoMode()
@@ -3470,7 +3472,20 @@
     container.appendChild(card);
   }
 
+  function refreshCertificateCompletion() {
+    if (!window.PLANNECertificates) { return; }
+    window.PLANNECertificates.update({
+      user: appState.user,
+      username: getCurrentUsername(),
+      ready: appState.remoteDataLoaded,
+      demo: isDemoMode(),
+      diagnosticAttempts: appState.diagnosticAttempts || [],
+      completedStages: getLearningProgressForRender().completedStages
+    });
+  }
+
   function renderLearningPath() {
+    refreshCertificateCompletion();
     var routeSection = byId("ruta");
     var container = byId("stageGrid");
     var progress = getLearningProgressForRender();

@@ -9,6 +9,8 @@
   <script src="data.js" defer></script>
   <script src="storage.js" defer></script>
   <script src="supabaseClient.js" defer></script>
+  <script src="supabase/functions/_shared/certificate-template.js" defer></script>
+  <script src="certificate.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 <body class="auth-pending">
@@ -140,6 +142,13 @@
       <div class="stage-grid" id="stageGrid"></div>
     </section>
 
+    <section class="module-block certificate-summary" id="certificateSummary" aria-labelledby="certificateSummaryTitle" hidden>
+      <p class="module-number">Cierre del programa</p>
+      <h2 id="certificateSummaryTitle">Ha completado PLANNE</h2>
+      <p id="certificateSummaryStatus" role="status"></p>
+      <button class="primary-button" id="certificateOpenButton" type="button">Solicitar certificado</button>
+    </section>
+
     <section class="module-block forum-block" id="foro" aria-labelledby="forumTitle">
       <div class="module-heading">
         <p class="module-number">Módulo 3 - COPEI</p>
@@ -163,6 +172,38 @@
       <div class="comment-list" id="commentList" aria-live="polite"></div>
     </section>
   </main>
+
+  <dialog class="certificate-dialog" id="certificateDialog" aria-labelledby="certificateTitle" aria-describedby="certificateClosingMessage">
+    <div class="certificate-dialog-heading">
+      <p class="eyebrow">PLANNE · Cierre de la experiencia</p>
+      <button class="ghost-button" id="certificateCloseButton" type="button" aria-label="Cerrar solicitud de certificado">Cerrar</button>
+    </div>
+    <h2 id="certificateTitle">Felicitaciones por completar PLANNE</h2>
+    <p id="certificateClosingMessage"></p>
+    <p class="demo-mode-notice" id="certificateDemoNotice" hidden>Vista de demostración. Use datos ficticios: no se guardarán solicitudes ni se enviarán correos.</p>
+    <form class="access-form" id="certificateForm" novalidate>
+      <label>Nombre completo
+        <input name="full_name" autocomplete="name" maxlength="160" required>
+      </label>
+      <label>Número de cédula
+        <input name="national_id" autocomplete="off" maxlength="40" required>
+      </label>
+      <label>Correo electrónico
+        <input name="email" type="email" autocomplete="email" maxlength="254" required>
+      </label>
+      <p class="helper-text">Usaremos estos datos para preparar su certificado y enviarlo al correo registrado. Revise que su nombre y cédula estén correctos antes de continuar.</p>
+      <button class="primary-button" id="certificateSubmitButton" type="submit">Registrar solicitud</button>
+    </form>
+    <p id="certificateMessage" role="status" aria-live="polite"></p>
+    <div id="certificateRegistered" hidden>
+      <p id="certificateRequestStatus"></p>
+      <p id="certificateCode"></p>
+      <div class="quiz-result-actions">
+        <button class="primary-button" id="certificatePrintButton" type="button">Ver certificado / guardar PDF</button>
+        <button class="secondary-button" id="certificateEmailButton" type="button">Reintentar envío por correo</button>
+      </div>
+    </div>
+  </dialog>
 
   <footer class="site-footer">
     <p id="impactText">PLANNE - Plataforma Digital de Neuroliderazgo Educativo.</p>

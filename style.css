@@ -1,18 +1,18 @@
 /* Fondos y colores principales: cambia estas variables para personalizar la vitrina. */
 :root {
-  --page-bg: #eef4f3;
-  --hero-bg: #e4f0ed;
+  --page-bg: #0c4da2;
+  --hero-bg: #083a7a;
   --surface: #ffffff;
-  --surface-soft: #f7faf9;
-  --text: #1f2d34;
-  --muted: #5d6d75;
-  --line: #d9e3e0;
-  --accent: #2c7667;
-  --accent-dark: #235d53;
-  --accent-blue: #315f8a;
-  --accent-warm: #b86b4b;
-  --locked: #8a9398;
-  --shadow: 0 18px 45px rgba(31, 45, 52, 0.1);
+  --surface-soft: #f3f7fd;
+  --text: #142b4a;
+  --muted: #4d607a;
+  --line: #cad9ed;
+  --accent: #0c4da2;
+  --accent-dark: #083a7a;
+  --accent-blue: #0c4da2;
+  --accent-warm: #735a25;
+  --locked: #596b82;
+  --shadow: 0 18px 45px rgba(5, 31, 72, 0.18);
   --radius: 8px;
   --max-width: 1180px;
 }
@@ -96,7 +96,7 @@ button {
 }
 
 .hero {
-  background: var(--hero-bg);
+  background: linear-gradient(155deg, var(--hero-bg), var(--page-bg));
   border-bottom: 1px solid var(--line);
 }
 
@@ -374,6 +374,31 @@ button {
   max-width: 760px;
 }
 
+.hero .brand,
+.hero-copy h1,
+.hero .section-heading h2,
+.stage-detail-header h2,
+.diagnosis-detail-header h2 {
+  color: #ffffff;
+}
+
+.hero .brand small,
+.hero-copy p:not(.eyebrow),
+.hero-copy .eyebrow,
+.hero .section-heading .eyebrow,
+.hero .brain-figure figcaption,
+.stage-detail-header .module-number,
+.stage-detail-header .stage-status,
+.diagnosis-detail-header .module-number,
+.diagnosis-detail-header .stage-status {
+  color: #dceafb;
+}
+
+.stage-detail-header > .ghost-button,
+.diagnosis-detail-header > .ghost-button {
+  background: var(--surface);
+}
+
 .brain-figure {
   margin: 0 auto;
   max-width: 760px;
@@ -523,7 +548,7 @@ button {
 }
 
 .module-block {
-  background: rgba(255, 255, 255, 0.62);
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   margin-bottom: 24px;
@@ -609,7 +634,7 @@ button {
 }
 
 .diagnosis-variable-bar {
-  background: #d9e3e0;
+  background: #cad9ed;
   border-radius: 999px;
   height: 8px;
   overflow: hidden;
@@ -623,8 +648,8 @@ button {
 }
 
 .diagnosis-result-note {
-  background: #eef8f5;
-  border: 1px solid #c9e1da;
+  background: #edf4fe;
+  border: 1px solid #b8cfee;
   border-radius: 6px;
   padding: 10px 12px;
 }
@@ -752,7 +777,7 @@ button {
 }
 
 .diagnostic-progress-segment {
-  background: #d9e3e0;
+  background: #cad9ed;
   border: 0;
   border-radius: 999px;
   height: 10px;
@@ -868,9 +893,9 @@ button {
 .diagnostic-option-card:hover,
 .diagnostic-option-card:focus-within,
 .diagnostic-option-card.is-selected {
-  background: #eef8f5;
+  background: #edf4fe;
   border-color: var(--accent);
-  box-shadow: 0 10px 22px rgba(44, 118, 103, 0.12);
+  box-shadow: 0 10px 22px rgba(12, 77, 162, 0.12);
 }
 
 .diagnostic-option-marker {
@@ -1069,7 +1094,7 @@ button {
 }
 
 .stage-card.is-locked {
-  background: #f0f3f3;
+  background: #edf2f9;
   color: var(--locked);
 }
 
@@ -1148,8 +1173,8 @@ button {
 }
 
 .stage-card button:disabled {
-  background: #e6e9ea;
-  border-color: #d1d8d8;
+  background: #e7edf5;
+  border-color: #cad9ed;
   color: var(--locked);
 }
 
@@ -1406,8 +1431,8 @@ button {
 }
 
 .quiz-result-card.is-passed {
-  background: #eef8f5;
-  border-color: #c9e1da;
+  background: #edf4fe;
+  border-color: #b8cfee;
 }
 
 .quiz-result-card.is-failed {
@@ -1522,12 +1547,62 @@ button {
 }
 
 .site-footer {
-  color: var(--muted);
+  color: #dceafb;
   display: grid;
   gap: 12px;
   justify-items: center;
   padding: 24px 20px 34px;
   text-align: center;
+}
+
+.stage-page-active .certificate-summary,
+.diagnosis-page-active .certificate-summary {
+  display: none;
+}
+
+.certificate-summary {
+  border-top: 4px solid #bda46a;
+}
+
+.certificate-dialog {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-top: 6px solid var(--accent);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  box-sizing: border-box;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  padding: clamp(20px, 4vw, 32px);
+  width: min(620px, calc(100% - 32px));
+}
+
+.certificate-dialog::backdrop {
+  background: rgba(5, 26, 59, 0.78);
+}
+
+.certificate-dialog-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.certificate-dialog h2 {
+  color: var(--accent-dark);
+  font-size: clamp(1.5rem, 5vw, 2rem);
+  line-height: 1.2;
+}
+
+.certificate-dialog .helper-text {
+  font-weight: 400;
+}
+
+.certificate-dialog button:focus-visible,
+.certificate-summary button:focus-visible {
+  outline: 3px solid #735a25;
+  outline-offset: 3px;
 }
 
 .guide-popover {

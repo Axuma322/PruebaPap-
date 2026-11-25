@@ -1,0 +1,4 @@
+# JWT is verified inside the handler with auth.getUser(token).
+# This also supports projects using newer JWT signing keys.
+[functions.send-certificate]
+verify_jwt = false
