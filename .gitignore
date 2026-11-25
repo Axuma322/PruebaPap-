@@ -1,0 +1,5 @@
+# Local CLI metadata and private environment files are never published.
+supabase/.temp/
+.env
+.env.*
+!.env.example

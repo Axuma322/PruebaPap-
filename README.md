@@ -71,7 +71,7 @@ Instrumento de **30 ítems**, distribuido en tres variables de diez ítems cada 
 2. Principios de neuroeducación evidenciados.
 3. Implementación de procesos eficientes y eficaces en la cultura pedagógica institucional.
 
-El usuario puede consultar su puntuación global, porcentajes por variable y retroalimentación. Para cuentas reales, el código contempla un intento `initial` y otro `final`. El segundo se ofrece después del primero; no exige completar toda la ruta RFAN para realizarlo.
+El usuario puede consultar su puntuación global, porcentajes por variable y retroalimentación. Para cuentas reales, el recorrido es **diagnóstico inicial → etapas A, B, C y D → diagnóstico final → solicitud de constancia**. El segundo diagnóstico permanece pendiente hasta completar las cuatro etapas; también se bloquea el acceso directo o envío anticipado. Demo conserva el recorrido libre y los resultados anteriores no se borran.
 
 ### RFAN · Ruta de Formación Adaptativa en Neuroliderazgo
 

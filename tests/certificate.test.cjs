@@ -73,3 +73,21 @@ test('participant strings in email remain escaped text, not HTML or public links
   assert.ok(!html.includes('private@example.com'));
   assert.ok(!/<a\b|href=/.test(html));
 });
+
+test('required order is initial DNA, all four stages, final DNA; demo stays free', () => {
+  const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
+  const functions=app.slice(app.indexOf('  function getNextDiagnosticAttemptType('),app.indexOf('  function getDiagnosticAttemptLabel('));
+  const state={demo:false,initial:false,final:false,stages:[]};
+  const context={isDemoMode:()=>state.demo,isDiagnosticCompleted:()=>state.initial,
+    getDiagnosticAttemptByType:type=>state[type]?{}:null,
+    getLearningProgressForRender:()=>({completedStages:state.stages}),
+    isStageCompleted:(id,progress)=>progress.completedStages.includes(id)};
+  vm.runInNewContext(functions,context);
+  assert.equal(context.getNextDiagnosticAttemptType(),'initial');
+  state.initial=true;assert.equal(context.getNextDiagnosticAttemptType(),null);assert.equal(context.isFinalDiagnosticLocked(),true);
+  state.stages=['D'];assert.equal(context.getNextDiagnosticAttemptType(),null);
+  state.stages=['A','B','C'];assert.equal(context.getNextDiagnosticAttemptType(),null);
+  state.stages.push('D');assert.equal(context.getNextDiagnosticAttemptType(),'final');assert.equal(context.isFinalDiagnosticLocked(),false);
+  state.final=true;assert.equal(context.getNextDiagnosticAttemptType(),null);
+  state.demo=true;state.stages=[];assert.equal(context.getNextDiagnosticAttemptType(),'demo');
+});

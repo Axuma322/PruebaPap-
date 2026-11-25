@@ -22,11 +22,11 @@ if(table==='certificate_requests'){
  return {data:record,error:null};
 }
 let rows=[];
-if(table==='diagnostic_answers'&&inserted)window.mockFinalSaved=true;
+if(table==='diagnostic_answers'&&inserted){if(inserted.attempt_type==='initial')window.mockInitialSaved=true;else window.mockFinalSaved=true;}
 if(table==='profiles')rows=[{id:'test-user',username:scenario==='demo'?'demo':'tester'}];
-if(table==='progress')rows=[{user_id:'test-user',diagnostic_completed:true,current_stage:scenario==='missing-stage'?'D':'A',completed_stages:scenario==='missing-stage'?['A','B','C']:['A','B','C','D']}];
-if(table==='diagnostic_answers')rows=(scenario==='missing-final'&&!window.mockFinalSaved?['initial']:['initial','final']).map((type,i)=>({id:'dna-'+i,attempt_type:type,answers:{attemptType:type,items:[],totalScore:100,maxScore:150,percentage:67,variableScores:[]},created_at:'2026-11-2'+i+'T00:00:00Z'}));
-if(table==='quiz_attempts')rows=(scenario==='missing-stage'?['A','B','C']:['A','B','C','D']).map(stage_key=>({stage_key,answers:{},passed:true,score:80,created_at:'2026-11-23T00:00:00Z'}));
+if(table==='progress')rows=[{user_id:'test-user',diagnostic_completed:scenario!=='no-initial',current_stage:'A',completed_stages:scenario==='no-initial'?[]:['missing-stage','ordered'].includes(scenario)?['A','B','C']:['A','B','C','D']}];
+if(table==='diagnostic_answers')rows=(scenario==='no-initial'?window.mockInitialSaved?['initial']:[]:['missing-final','ordered'].includes(scenario)&&!window.mockFinalSaved?['initial']:['initial','final']).map((type,i)=>({id:'dna-'+i,attempt_type:type,answers:{attemptType:type,items:[],totalScore:100,maxScore:150,percentage:67,variableScores:[]},created_at:'2026-11-2'+i+'T00:00:00Z'}));
+if(table==='quiz_attempts')rows=(scenario==='no-initial'?[]:['missing-stage','ordered'].includes(scenario)?['A','B','C']:['A','B','C','D']).map(stage_key=>({stage_key,answers:{},passed:true,score:80,created_at:'2026-11-23T00:00:00Z'}));
 return {data:single?(rows[0]||null):rows,error:null};
 }};return q;}
 }}};`;
@@ -76,7 +76,7 @@ const server=http.createServer((req,res)=>{
  await page.screenshot({path:path.join(artifactDir,'planne-home-blue.png'),fullPage:true});
  await page.locator('#logoutButton').click();assert.equal(await page.locator('#certificateSummary').evaluate(e=>e.hidden),true);
  assert.equal(await page.locator('#certificateForm [name=email]').inputValue(),'');
- for(const scenario of ['missing-final','missing-stage','demo','logout']){
+ for(const scenario of ['missing-final','missing-stage','ordered','no-initial','demo','logout']){
   const ctx=await browser.newContext();const p=await ctx.newPage();p.on('pageerror',e=>errors.push(e.message));
   await p.addInitScript(s=>{window.testScenario=s;localStorage.setItem('planne:usage-guide-seen','true')},scenario);
   await p.goto(origin);await p.waitForFunction(()=>!document.body.classList.contains('auth-pending'));
@@ -115,14 +115,45 @@ const server=http.createServer((req,res)=>{
     await p.waitForSelector('#certificateDialog[open]');
    }
    if(scenario==='missing-final'){
-    await p.getByRole('button',{name:'Realizar segundo diagnóstico',exact:true}).click();
+    await p.getByRole('button',{name:'Realizar diagnóstico final',exact:true}).click();
     await p.locator('[name=managerName]').fill('Gestor de prueba');await p.locator('[name=institution]').fill('Institución de prueba');
     await p.locator('.diagnostic-start-form button').click();
     for(let i=0;i<30;i++){
-     await p.locator('.diagnostic-option-card input').first().check({force:true});
+     await p.locator('.diagnostic-option-card').first().click();
      await p.locator('.diagnostic-question-actions .primary-button').click();
     }
     await p.waitForSelector('#certificateDialog[open]');
+   }
+   if(scenario==='ordered'){
+    assert.ok((await p.locator('#diagnosisContent').innerText()).includes('El segundo diagnóstico está pendiente'));
+    assert.equal(await p.getByRole('button',{name:'Realizar diagnóstico final',exact:true}).count(),0);
+    await p.evaluate(()=>location.hash='#modulo-dna');
+    await p.waitForSelector('.diagnosis-detail-view');
+    assert.equal(await p.locator('.diagnostic-start-form').count(),0);
+    assert.ok((await p.locator('.diagnosis-detail-view').innerText()).includes('Segundo diagnóstico pendiente'));
+    await p.getByRole('button',{name:'Continuar con las etapas',exact:true}).click();
+    await p.evaluate(()=>location.hash='#etapa-d');await p.waitForSelector('.likert-form');
+    for(const row of await p.locator('.likert-item').all())await row.locator('input').last().check();
+    await p.getByRole('button',{name:'Enviar autoevaluación',exact:true}).click();
+    await p.waitForSelector('.quiz-result-card');
+    assert.equal(await p.locator('#certificateDialog').evaluate(d=>d.open),false);
+    await p.getByRole('button',{name:'Realizar diagnóstico final',exact:true}).click();
+    await p.locator('[name=managerName]').fill('Gestor de prueba');await p.locator('[name=institution]').fill('Institución de prueba');
+    await p.locator('.diagnostic-start-form button').click();
+    for(let i=0;i<30;i++){await p.locator('.diagnostic-option-card').first().click();await p.locator('.diagnostic-question-actions .primary-button').click();}
+    await p.waitForSelector('#certificateDialog[open]');
+   }
+   if(scenario==='no-initial'){
+    assert.equal(await p.locator('#stageGrid button:enabled').count(),0);
+    await p.evaluate(()=>location.hash='#etapa-a');await p.waitForFunction(()=>location.hash==='#ruta');
+    assert.equal(await p.locator('.evaluation-form').count(),0);
+    await p.getByRole('button',{name:'Iniciar diagnóstico inicial',exact:true}).click();
+    await p.locator('[name=managerName]').fill('Gestor de prueba');await p.locator('[name=institution]').fill('Institución de prueba');
+    await p.locator('.diagnostic-start-form button').click();
+    for(let i=0;i<30;i++){await p.locator('.diagnostic-option-card').first().click();await p.locator('.diagnostic-question-actions .primary-button').click();}
+    await p.getByRole('button',{name:'Continuar con las etapas',exact:true}).click();
+    assert.equal(await p.locator('#stageGrid button:enabled').count(),1);
+    assert.equal(await p.getByRole('button',{name:'Realizar diagnóstico final',exact:true}).count(),0);
    }
   }
   await ctx.close();

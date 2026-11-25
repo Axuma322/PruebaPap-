@@ -1,16 +1,16 @@
 # PLANNE · constancia PDF por correo y descarga
 
-La constancia reconoce la finalización de un recorrido educativo participativo. No es una acreditación oficial y no necesita aprobación institucional ni revisión humana. **No se han ejecutado migraciones ni desplegado funciones contra Supabase real.**
+La constancia reconoce la finalización de un recorrido educativo participativo. No es una acreditación oficial y no necesita aprobación institucional ni revisión humana. El responsable confirmó que la migración 001 y los secretos ya están configurados en el proyecto `cbzckqmihqvinrmpoheq`; **no volver a ejecutar la 001 en ese proyecto**. `send-certificate` se desplegó y figura `ACTIVE`, versión 1. Se comprobó preflight 204 para `https://planne.dev` y rechazo 401 del handler sin sesión. La publicación del frontend y la recepción real en Gmail se verifican por separado.
 
 ## Único SQL que se debe ejecutar
 
-Ejecutar manualmente, una sola vez y en el proyecto correcto:
+Solo para una instalación nueva, ejecutar manualmente una vez y en el proyecto correcto:
 
 **[202611240001_certificate_requests.sql](migrations/202611240001_certificate_requests.sql)**
 
-**Solo la 001 definitiva. No ejecutar ninguna 002 anterior.** Las versiones anteriores no se han aplicado y fueron sustituidas; se retiraron el catálogo de instrumentos y los cambios de validación de evaluaciones. No usar `db reset` ni `db push` con un historial que no represente la base existente.
+**Para una instalación nueva, solo la 001 actualizada. No ejecutar las antiguas 002 de revisión/catálogo.** Si ya se ejecutó una versión anterior de la 001, no repetirla: aplicar únicamente [202611250002_diagnostic_order.sql](migrations/202611250002_diagnostic_order.sql), que añade el orden de diagnósticos sin borrar datos. Esta nueva 002 no contiene aprobación humana. No usar `db reset` ni `db push` con un historial que no represente la base existente.
 
-Prerequisitos: las tablas actuales `profiles`, `diagnostic_answers` y `quiz_attempts`, con las columnas que consume `app.js`. La migración añade solicitudes y protección de identidad demo, sin borrar datos ni modificar reglas, resultados, permisos o políticas de las evaluaciones. Un trigger en `profiles` recuerda automáticamente las cuentas demo incluso si se renombran.
+Prerequisitos: las tablas actuales `profiles`, `diagnostic_answers` y `quiz_attempts`, con las columnas que consume `app.js`. La migración añade solicitudes, protección de identidad demo y controles de orden: diagnóstico inicial antes de etapas, diagnóstico final después de A–D. No borra resultados ni cambia puntuaciones, umbrales o políticas existentes. Un trigger en `profiles` recuerda automáticamente las cuentas demo incluso si se renombran. Los controles de orden se aplican a nuevas escrituras de participantes; no alteran retroactivamente resultados históricos ni importaciones administrativas.
 
 La solicitud guarda usuario, nombre, cédula, correo, fecha de finalización y código único generado en PostgreSQL. Tiene una restricción única por usuario. La fecha se obtiene de los diagnósticos y etapas completadas, no del formulario. La normalización de DNA conserva el tipo válido del payload por encima del predeterminado `initial`; no inventa un final por orden de filas.
 
@@ -18,7 +18,7 @@ RLS permite al participante insertar solo sus datos obligatorios y leer únicame
 
 ## Flujo definitivo
 
-1. El usuario completa DNA inicial y final y las etapas A–D según las reglas existentes. B es una autoevaluación: sus 20 respuestas bastan, sin nota mínima. A/C/D conservan su umbral actual.
+1. El usuario completa **DNA inicial → A → B → C → D → DNA final**. El segundo diagnóstico se habilita al completar todas las etapas; al terminar D se ofrece un acceso directo. B es una autoevaluación: sus 20 respuestas bastan, sin nota mínima. A/C/D conservan su umbral actual.
 2. Se abre automáticamente el modal de felicitaciones. Su mensaje se edita en `APP_DATA.certificate.closingMessage`, en `data.js`.
 3. Registra nombre completo, cédula y correo. Supabase comprueba el progreso guardado y crea la solicitud con código único.
 4. El frontend llama automáticamente a `send-certificate`. La función valida JWT, propietario, perfil real y finalización guardada.
@@ -60,7 +60,9 @@ supabase functions deploy send-certificate --project-ref SU_PROJECT_REF
 
 Publicar también el frontend actualizado, incluidos el generador compartido y `assets/vendor/`. No hace falta instalar paquetes ni compilar el frontend.
 
-`config.toml` desactiva el verificador JWT heredado del gateway; el handler verifica explícitamente el Bearer token con `auth.getUser(token)`. No retirar esa validación. Estos comandos se documentan para ejecución posterior; no se han ejecutado.
+Conservar `.nojekyll` en la raíz publicada de GitHub Pages. El generador compartido está bajo `_shared`; sin desactivar Jekyll, esa carpeta puede quedar excluida y la simulación demo devuelve un 404 al cargarla.
+
+`config.toml` desactiva el verificador JWT heredado del gateway; el handler verifica explícitamente el Bearer token con `auth.getUser(token)`. No retirar esa validación. El acceso y el despliegue exclusivo de `send-certificate` ya se completaron en el proyecto indicado. No se ejecutó SQL ni se modificaron secretos o participantes durante ese despliegue.
 
 ## Primer PDF en Gmail
 

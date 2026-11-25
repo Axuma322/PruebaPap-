@@ -32,7 +32,7 @@ test('single migration: own requests, unique code, saved completion, B=25%, priv
     const policiesBefore=(await db.query("select * from pg_policies where tablename in ('quiz_attempts','diagnostic_answers','progress')")).rows;
     await db.exec(read('supabase/migrations/202611240001_certificate_requests.sql'));
     assert.deepEqual((await db.query("select * from pg_policies where tablename in ('quiz_attempts','diagnostic_answers','progress')")).rows,policiesBefore);
-    assert.equal((await db.query("select count(*)::int n from pg_trigger where not tgisinternal and tgrelid in ('public.quiz_attempts'::regclass,'public.diagnostic_answers'::regclass,'public.progress'::regclass)")).rows[0].n,0);
+    assert.equal((await db.query("select count(*)::int n from pg_trigger where not tgisinternal and tgrelid in ('public.quiz_attempts'::regclass,'public.diagnostic_answers'::regclass,'public.progress'::regclass)")).rows[0].n,2);
     const setUser=()=>db.exec(`set role authenticated;select set_config('request.jwt.claim.sub','${user}',false)`);
     const admin=()=>db.exec("reset role;select set_config('request.jwt.claim.sub','',false)");
     const request=()=>db.query(`insert into public.certificate_requests(user_id,full_name,national_id,email) values ('${user}',' Nombre Apellido ',' 0123 ','private@example.com') returning id,certificate_code,completion_date,full_name,national_id`);
@@ -59,6 +59,36 @@ test('single migration: own requests, unique code, saved completion, B=25%, priv
     assert.equal((await db.query('select public.certificate_can_issue($1) value',[demo])).rows[0].value,false);
     assert.equal((await db.query("select to_regclass('public.certificate_completion_reviews') value")).rows[0].value,null);
     assert.equal((await db.query("select to_regclass('public.certificate_instruments') value")).rows[0].value,null);
+  } finally {await db.close()}
+});
+
+test('database enforces initial before stages and final after A-D, even for a direct insert/update',async()=>{
+  const db=new PGlite();
+  try {
+    await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;
+      create schema auth;create table auth.users(id uuid primary key);
+      create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+      grant usage on schema auth to authenticated;
+      create table public.profiles(id uuid,username text);
+      create table public.diagnostic_answers(id uuid default gen_random_uuid(),user_id uuid,attempt_type text default 'initial',answers jsonb,created_at timestamptz default now());
+      create table public.quiz_attempts(user_id uuid,stage_key text,passed boolean,score integer,created_at timestamptz default now());
+      insert into auth.users values ('${user}');insert into public.profiles values ('${user}','tester');
+      grant select,insert,update on public.diagnostic_answers,public.quiz_attempts to authenticated;`);
+    await db.exec(read('supabase/migrations/202611240001_certificate_requests.sql'));
+    // The optional upgrade is safe after the new initial migration too.
+    await db.exec(read('supabase/migrations/202611250002_diagnostic_order.sql'));
+    await db.exec(`set role authenticated;select set_config('request.jwt.claim.sub','${user}',false)`);
+    const insertFinal=()=>db.query('insert into public.diagnostic_answers(user_id,answers) values($1,$2)',[user,{attemptType:'final'}]);
+    await assert.rejects(()=>db.query(`insert into public.quiz_attempts values('${user}','A',true,70,now())`),/diagnóstico inicial/);
+    await assert.rejects(insertFinal,/antes del diagnóstico final/);
+    await db.query('insert into public.diagnostic_answers(user_id,answers) values($1,$2)',[user,{attemptType:'initial'}]);
+    await assert.rejects(insertFinal,/antes del diagnóstico final/);
+    await assert.rejects(()=>db.exec(`update public.diagnostic_answers set answers='{"attemptType":"final"}'`),/antes del diagnóstico final/);
+    await db.exec(`insert into public.quiz_attempts values('${user}','A',true,70,now()),('${user}','B',true,25,now()),('${user}','C',true,70,now()),('${user}','D',false,25,now())`);
+    await assert.rejects(insertFinal,/antes del diagnóstico final/);
+    await db.exec("update public.quiz_attempts set passed=true,score=70 where stage_key='D'");
+    await insertFinal();
+    assert.equal((await db.query('select count(*)::int n from public.diagnostic_answers')).rows[0].n,2);
   } finally {await db.close()}
 });
 

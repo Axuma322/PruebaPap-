@@ -571,11 +571,25 @@
       return "initial";
     }
 
-    if (!getDiagnosticAttemptByType("final")) {
+    if (!getDiagnosticAttemptByType("final") && hasCompletedLearningPath()) {
       return "final";
     }
 
     return null;
+  }
+
+  function hasCompletedLearningPath() {
+    var progress = getLearningProgressForRender();
+    return ["A", "B", "C", "D"].every(function (id) { return isStageCompleted(id, progress); });
+  }
+
+  function isFinalDiagnosticLocked() {
+    return !isDemoMode() && isDiagnosticCompleted()
+      && !getDiagnosticAttemptByType("final") && !hasCompletedLearningPath();
+  }
+
+  function finalDiagnosticLockedMessage() {
+    return "Primer diagnóstico listo. El segundo diagnóstico está pendiente y podrá realizarlo cuando complete la etapa D y las etapas anteriores del programa.";
   }
 
   function getDiagnosticAttemptLabel(attemptType) {
@@ -1355,7 +1369,7 @@
     }
 
     if (hasInitial) {
-      return "Segundo intento disponible";
+      return isFinalDiagnosticLocked() ? "Inicial listo · final pendiente" : "Diagnóstico final disponible";
     }
 
     return "Pendiente";
@@ -1406,6 +1420,9 @@
   }
 
   function goToDiagnosisView() {
+    if (appState.activeDiagnosisAttempt && appState.activeDiagnosisAttempt.submitted) {
+      appState.activeDiagnosisAttempt = null;
+    }
     if (window.location.hash === "#modulo-dna") {
       renderDiagnosis();
       return;
@@ -1655,7 +1672,8 @@
     }
 
     if (initialAttempt && !finalAttempt) {
-      panel.appendChild(createElement("p", "diagnosis-result-note", "Segundo diagnóstico disponible."));
+      panel.appendChild(createElement("p", "diagnosis-result-note", isFinalDiagnosticLocked()
+        ? finalDiagnosticLockedMessage() : "Etapas A, B, C y D completadas. Ya puede realizar el diagnóstico final y después solicitar su constancia."));
     }
 
     if (initialAttempt && finalAttempt) {
@@ -1690,20 +1708,25 @@
     var buttonLabel = "Diagnóstico completado";
     var primaryButton;
     var resultsButton;
+    var finalLocked = isFinalDiagnosticLocked();
 
     if (nextAttemptType === "initial") {
       buttonLabel = "Iniciar diagnóstico inicial";
     }
 
     if (nextAttemptType === "final") {
-      buttonLabel = "Realizar segundo diagnóstico";
+      buttonLabel = "Realizar diagnóstico final";
     }
 
     if (nextAttemptType === "demo") {
       buttonLabel = hasResults ? "Realizar diagnóstico nuevamente" : "Iniciar diagnóstico de demostración";
     }
 
-    if (!nextAttemptType && hasResults) {
+    if (finalLocked) {
+      primaryButton = createElement("button", "primary-button", "Continuar con las etapas");
+      primaryButton.type = "button";
+      primaryButton.addEventListener("click", goToRouteMap);
+    } else if (!nextAttemptType && hasResults) {
       primaryButton = createElement("button", "primary-button", "Ver resultados");
       primaryButton.type = "button";
       primaryButton.addEventListener("click", goToDiagnosisResults);
@@ -1714,7 +1737,7 @@
       primaryButton.addEventListener("click", goToDiagnosisView);
     }
 
-    if (hasResults && nextAttemptType) {
+    if (hasResults && (nextAttemptType || finalLocked)) {
       resultsButton = createElement("button", "secondary-button", "Ver resultados");
       resultsButton.type = "button";
       resultsButton.addEventListener("click", goToDiagnosisResults);
@@ -1723,9 +1746,12 @@
     card.appendChild(title);
     card.appendChild(status);
     card.appendChild(description);
+    card.appendChild(createElement("p", "helper-text", "Orden del recorrido: diagnóstico inicial → etapas A, B, C y D → diagnóstico final → constancia."));
     card.appendChild(attemptCount);
 
-    if (!isDemoMode() && !nextAttemptType) {
+    if (finalLocked) {
+      card.appendChild(buildFeedbackBox("Segundo diagnóstico pendiente", finalDiagnosticLockedMessage()));
+    } else if (!isDemoMode() && !nextAttemptType) {
       card.appendChild(buildFeedbackBox(
         "Diagnóstico completado",
         "Ya se registraron los dos intentos disponibles."
@@ -1771,6 +1797,12 @@
     form.appendChild(submit);
     form.addEventListener("submit", function (event) {
       event.preventDefault();
+
+      if (!isDemoMode() && attemptType !== getNextDiagnosticAttemptType()) {
+        appState.activeDiagnosisAttempt = null;
+        renderDiagnosis();
+        return;
+      }
 
       var managerName = form.elements.managerName.value.trim();
       var institution = form.elements.institution.value.trim();
@@ -1820,6 +1852,12 @@
     var response;
 
     if (appState.isSavingDiagnostic) {
+      return;
+    }
+
+    if (!isDemoMode() && session.attemptType === "final" && (!isDiagnosticCompleted() || !hasCompletedLearningPath())) {
+      appState.activeDiagnosisAttempt = null;
+      renderDiagnosis();
       return;
     }
 
@@ -1961,6 +1999,7 @@
     session.submitted = true;
     session.feedback = "Diagnóstico enviado correctamente. Gracias por completar el instrumento.";
     renderDiagnosis();
+    renderLearningPath();
   }
 
   function renderDiagnosisQuestion(container, session) {
@@ -2111,10 +2150,23 @@
         mainColumn.appendChild(buildDemoDiagnosisActions());
       } else {
         mainColumn.appendChild(buildFeedbackBox(
-          "Diagnóstico enviado correctamente",
-          "Gracias por completar el instrumento."
+          session.attemptType === "initial" ? "Primer diagnóstico listo" : "Diagnóstico final listo",
+          session.attemptType === "initial" ? finalDiagnosticLockedMessage() : "Gracias por completar el recorrido. Ya puede registrar sus datos para recibir su constancia."
         ));
+        if (session.attemptType === "initial") {
+          var continueButton = createElement("button", "primary-button", "Continuar con las etapas");
+          continueButton.type = "button";
+          continueButton.addEventListener("click", goToRouteMap);
+          mainColumn.appendChild(continueButton);
+        }
       }
+    } else if (isFinalDiagnosticLocked()) {
+      appState.activeDiagnosisAttempt = null;
+      mainColumn.appendChild(buildFeedbackBox("Segundo diagnóstico pendiente", finalDiagnosticLockedMessage()));
+      var routeButton = createElement("button", "primary-button", "Continuar con las etapas");
+      routeButton.type = "button";
+      routeButton.addEventListener("click", goToRouteMap);
+      mainColumn.appendChild(routeButton);
     } else if (!nextAttemptType) {
       mainColumn.appendChild(buildFeedbackBox(
         "Diagnóstico completado",
@@ -2339,9 +2391,10 @@
       tertiaryButton.type = "button";
       tertiaryButton.addEventListener("click", goToRouteMap);
     } else if (feedback.passed) {
-      primaryButton = createElement("button", "primary-button", "Continuar");
+      var finalReady = feedback.stageId === "D" && getNextDiagnosticAttemptType() === "final";
+      primaryButton = createElement("button", "primary-button", finalReady ? "Realizar diagnóstico final" : "Continuar");
       primaryButton.type = "button";
-      primaryButton.addEventListener("click", goToRouteMap);
+      primaryButton.addEventListener("click", finalReady ? goToDiagnosisView : goToRouteMap);
 
       secondaryButton = createElement("button", "secondary-button", "Volver a la ruta");
       secondaryButton.type = "button";
@@ -2406,6 +2459,8 @@
     if (isDemoMode()) {
       return "Disponible en modo demostración";
     }
+
+    if (!isDiagnosticCompleted()) { return "Complete primero el diagnóstico inicial"; }
 
     if (!progress.unlockedStages.includes(stage.id)) {
       return "Bloqueada";
@@ -2972,6 +3027,11 @@
       return;
     }
 
+    if (!isDemoMode() && !isDiagnosticCompleted()) {
+      setSyncNotice("Complete primero el diagnóstico inicial antes de realizar las etapas.");
+      return;
+    }
+
     if (!isDemoMode() && isStageCompleted(stage.id, progress)) {
       latestStageFeedback = {
         stageId: stage.id,
@@ -3229,6 +3289,11 @@
       return;
     }
 
+    if (!isDemoMode() && !isDiagnosticCompleted()) {
+      setSyncNotice("Complete primero el diagnóstico inicial antes de realizar las etapas.");
+      return;
+    }
+
     if (appState.savingQuizStages[stage.id]) {
       return;
     }
@@ -3438,7 +3503,7 @@
   }
 
   function renderStageCard(container, stage, progress) {
-    var isUnlocked = progress.unlockedStages.includes(stage.id);
+    var isUnlocked = (isDemoMode() || isDiagnosticCompleted()) && progress.unlockedStages.includes(stage.id);
     var isComplete = progress.completedStages.includes(stage.id);
     var card = createElement("article", "stage-card");
     var head = createElement("div", "stage-head");
@@ -3494,7 +3559,7 @@
     var container = byId("stageGrid");
     var progress = getLearningProgressForRender();
     var selectedStage = getSelectedStageFromHash();
-    var selectedStageIsUnlocked = selectedStage && progress.unlockedStages.includes(selectedStage.id);
+    var selectedStageIsUnlocked = selectedStage && (isDemoMode() || isDiagnosticCompleted()) && progress.unlockedStages.includes(selectedStage.id);
 
     byId("learningTitle").textContent = data.learningPath.title;
     byId("learningDescription").textContent = data.learningPath.description;

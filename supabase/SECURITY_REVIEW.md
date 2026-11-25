@@ -1,6 +1,8 @@
 # Alcance definitivo · constancia PDF participativa
 
-Se utiliza **solo la migración 001 definitiva**. Se retiraron las migraciones 002 de revisión y validación de instrumentos, así como el generador de catálogo. No hay aprobaciones humanas ni cambios en las evaluaciones, sus reglas, resultados, permisos o políticas.
+Una instalación nueva utiliza **solo la migración 001 actualizada**. Si una versión anterior de 001 ya se aplicó, la nueva `202611250002_diagnostic_order.sql` añade únicamente el orden de recorrido, sin aprobación humana. Se retiraron las antiguas migraciones 002 de revisión/catálogo. Se mantienen las puntuaciones, umbrales, datos y políticas existentes.
+
+El recorrido para nuevas participaciones es inicial → A–D → final → constancia. Se bloquea en la interfaz y mediante triggers de orden para escrituras autenticadas: no se registra una etapa sin diagnóstico inicial ni un final sin inicial y las cuatro etapas completadas. No se modifican registros históricos ni se validan retroactivamente sus fechas; las importaciones administrativas se conservan. Estos controles no son una recalificación ni una protección contra respuestas falsificadas.
 
 La comprobación de finalización usa los registros existentes: DNA inicial/final y un intento con `passed = true` en A, B, C y D. En B, ese campo significa autoevaluación completada, incluso con 25 %. Se mantiene la normalización que prioriza `answers.attemptType` sobre el predeterminado de columna `initial`, sin inventar finales por posición. `progress` no basta por sí solo para emitir.
 
@@ -14,4 +16,4 @@ Se mantienen restricción única de solicitud, bloqueo de formulario, reserva de
 
 Demo genera un PDF marcado localmente sin tabla de solicitudes, función de servidor ni correo. El mismo generador y versión de pdf-lib se utilizan para el diseño de muestra.
 
-No se ejecutó SQL ni se desplegaron funciones en Supabase real. Se probaron la migración en PostgreSQL efímero, un PDF real con datos y acentos españoles, el adjunto y la descarga idénticos con Resend simulado y el modal en navegador. La recepción real en Gmail requiere la configuración descrita en [README.md](README.md).
+El responsable confirmó la instalación del SQL en Supabase real; el agente no volvió a ejecutarlo ni alteró participantes. Con autorización se desplegó únicamente `send-certificate`, activa en versión 1. Se comprobó CORS para `https://planne.dev` y rechazo 401 sin sesión. Las pruebas de PDF, adjunto/descarga idénticos y recorrido se realizaron localmente con servicios simulados. La recepción real en Gmail y la publicación de la secuencia actualizada en GitHub Pages siguen pendientes; ver [README.md](README.md).
