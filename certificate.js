@@ -10,6 +10,9 @@
   var generation = 0;
   var autoShown = false;
   var pendingOpen = false;
+  var verified = false;
+  // Match the column-level grant; never fetch provider payloads or review notes.
+  var requestColumns = "id,user_id,username,full_name,national_id,email,completion_date,certificate_code,status,certificate_sent_at,created_at,updated_at";
   var config = window.APP_DATA.certificate;
 
   function byId(id) { return document.getElementById(id); }
@@ -23,6 +26,7 @@
   function statusText() {
     if (!request) { return "Complete sus datos para solicitar el certificado de finalización."; }
     if (request.demo) { return "Solicitud simulada. No se guardó ni se envió ningún correo."; }
+    if (!verified) { return "Tu solicitud de certificado ya fue registrada. Está pendiente de verificación institucional antes de emitir el certificado."; }
     if (request.status === "sent") { return "Su certificado fue enviado al correo registrado."; }
     if (request.status === "sending") { return "Su solicitud está registrada y el envío está en proceso."; }
     return "Tu solicitud de certificado ya fue registrada. El certificado se enviará al correo indicado cuando se complete el envío.";
@@ -39,8 +43,11 @@
     byId("certificateDemoNotice").hidden = !(context && context.demo);
     byId("certificateRequestStatus").textContent = statusText();
     byId("certificateCode").textContent = request ? "Código: " + request.certificate_code : "";
-    byId("certificateEmailButton").hidden = !request || request.demo || request.status === "sent";
+    byId("certificatePrintButton").hidden = !request || (!request.demo && !verified);
+    byId("certificateEmailButton").hidden = !request || request.demo || !verified || request.status === "sent";
     byId("certificateEmailButton").disabled = emailing;
+    byId("certificateRefreshButton").hidden = !request || request.demo;
+    byId("certificateRefreshButton").disabled = loading;
   }
   function open() {
     if (!context || (!context.demo && !eligible(context))) { return; }
@@ -57,6 +64,7 @@
     generation += 1;
     context = null; request = null; loaded = false; loading = false;
     saving = false; emailing = false; autoShown = false; pendingOpen = false;
+    verified = false;
     if (byId("certificateDialog")) {
       byId("certificateDialog").close();
       byId("certificateForm").reset();
@@ -68,11 +76,13 @@
     var token = generation;
     loading = true; paint();
     try {
-      var response = await window.supabaseClient.from("certificate_requests").select("*")
+      var response = await window.supabaseClient.from("certificate_requests").select(requestColumns)
         .eq("user_id", context.user.id).maybeSingle();
       if (token !== generation) { return; }
       if (response.error) { throw response.error; }
       request = response.data;
+      verified = await verify(token);
+      if (token !== generation) { return; }
       loaded = true;
     } catch (error) {
       if (token !== generation) { return; }
@@ -94,6 +104,14 @@
     paint();
     if (eligible(context) && !loaded && !loading) { load(); }
   }
+  async function verify(token) {
+    try {
+      var result = await window.supabaseClient.rpc("certificate_verification_status");
+      return token === generation && !result.error && result.data === true;
+    } catch (error) {
+      return false;
+    }
+  }
   async function sendEmail() {
     if (!request || request.demo || emailing || !context || context.demo || request.status === "sent") { return; }
     var token = generation;
@@ -101,6 +119,9 @@
     emailing = true; paint();
     message("Su solicitud está guardada. Preparando el envío por correo…");
     try {
+      verified = await verify(token);
+      if (token !== generation) { return; }
+      if (!verified) { message(statusText()); return; }
       var result = await window.supabaseClient.functions.invoke(config.emailFunction, { body: { request_id: requestId } });
       if (token !== generation) { return; }
       if (result.error || !result.data || result.data.status !== "sent") { throw new Error("Envío pendiente"); }
@@ -108,7 +129,8 @@
       message("Solicitud registrada. El certificado fue enviado al correo indicado.");
     } catch (error) {
       if (token !== generation) { return; }
-      message("Su solicitud quedó registrada, pero el envío por correo está pendiente. Puede consultar su certificado aquí y reintentar el envío más tarde.");
+      verified = false;
+      message("Su solicitud quedó registrada. Actualice el estado para comprobar la verificación institucional y la disponibilidad del envío.");
     } finally {
       if (token === generation) { emailing = false; paint(); }
     }
@@ -128,10 +150,10 @@
       if (context.demo) {
         request = Object.assign(values, { demo: true, status: "demo", completion_date: new Date().toISOString(), certificate_code: "DEMO-SIN-VALIDEZ" });
       } else {
-        var result = await window.supabaseClient.from("certificate_requests").insert(Object.assign(values, { user_id: context.user.id })).select("*").single();
+        var result = await window.supabaseClient.from("certificate_requests").insert(Object.assign(values, { user_id: context.user.id })).select(requestColumns).single();
         if (token !== generation) { return; }
         if (result.error && result.error.code === "23505") {
-          var existing = await window.supabaseClient.from("certificate_requests").select("*").eq("user_id", context.user.id).single();
+          var existing = await window.supabaseClient.from("certificate_requests").select(requestColumns).eq("user_id", context.user.id).single();
           if (token !== generation) { return; }
           if (existing.error || !existing.data) { throw new Error("No se pudo recuperar la solicitud"); }
           request = existing.data;
@@ -141,9 +163,13 @@
         }
       }
       loaded = true;
+      if (!context.demo) {
+        verified = await verify(token);
+        if (token !== generation) { return; }
+      }
       form.reset();
       message(statusText());
-      if (!context.demo) { sendEmail(); }
+      if (!context.demo && verified) { sendEmail(); }
     } catch (error) {
       if (token !== generation) { return; }
       message("No se pudo registrar la solicitud. Sus datos siguen en el formulario; revise la conexión e intente de nuevo.");
@@ -151,11 +177,20 @@
       if (token === generation) { saving = false; paint(); }
     }
   }
-  function printCertificate() {
+  async function printCertificate() {
     if (!request) { return; }
     var popup = window.open("", "_blank");
     if (!popup) { message("Permita abrir una ventana para ver e imprimir su certificado."); return; }
     popup.opener = null;
+    if (!request.demo) {
+      var token = generation;
+      verified = await verify(token);
+      if (token !== generation || !verified || !request) {
+        popup.close();
+        if (token === generation) { message(statusText()); paint(); }
+        return;
+      }
+    }
     popup.document.open();
     popup.document.write(window.PLANNECertificateTemplate.render(request, config));
     popup.document.close();
@@ -166,6 +201,7 @@
     byId("certificateCloseButton").addEventListener("click", function () { byId("certificateDialog").close(); });
     byId("certificateForm").addEventListener("submit", submit);
     byId("certificateEmailButton").addEventListener("click", sendEmail);
+    byId("certificateRefreshButton").addEventListener("click", load);
     byId("certificatePrintButton").addEventListener("click", printCertificate);
   });
 })();

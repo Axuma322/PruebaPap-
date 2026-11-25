@@ -8,7 +8,7 @@ create table public.certificate_requests (
   username text not null,
   full_name text not null check (char_length(btrim(full_name)) between 1 and 160),
   national_id text not null check (char_length(btrim(national_id)) between 1 and 40),
-  email text not null check (char_length(email) <= 254 and email ~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$'),
+  email text not null constraint certificate_requests_email_check check (char_length(email) <= 254 and email ~ '^[^[:space:]@]+@[^[:space:]@]+[.][^[:space:]@]+$'),
   completion_date timestamptz not null,
   certificate_code text not null unique default ('PLANNE-' || upper(replace(gen_random_uuid()::text, '-', ''))),
   status text not null default 'pending' check (status in ('pending', 'sending', 'sent', 'failed')),
@@ -20,6 +20,19 @@ create table public.certificate_requests (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Payload type has priority over the legacy column default. Unknown rows are
+-- not promoted to a final diagnosis merely because they were inserted second.
+create function public.certificate_diagnostic_type(row_type text, answers jsonb)
+returns text language sql immutable set search_path = '' as $$
+  select case
+    when answers->>'attemptType' in ('initial', 'final') then answers->>'attemptType'
+    when row_type in ('initial', 'final') then row_type
+    else null
+  end;
+$$;
+revoke all on function public.certificate_diagnostic_type(text, jsonb) from public, anon, authenticated;
+grant execute on function public.certificate_diagnostic_type(text, jsonb) to service_role;
 
 create function public.prepare_certificate_request()
 returns trigger language plpgsql security definer set search_path = '' as $$
@@ -39,13 +52,10 @@ begin
     raise exception 'Demo or missing profile cannot request certificates' using errcode = '42501';
   end if;
 
-  -- Match normalizeDiagnosticAttempt: older rows without a type are interpreted
-  -- in chronological order (first = initial, subsequent = final).
+  -- Same precedence as app.js; two rows with default initial are not a final.
   with attempts as (
     select d.created_at,
-      coalesce(d.attempt_type, d.answers->>'attemptType',
-        case when row_number() over (order by d.created_at, d.id) = 1 then 'initial' else 'final' end
-      ) as attempt_type
+      public.certificate_diagnostic_type(d.attempt_type, d.answers::jsonb) as attempt_type
     from public.diagnostic_answers d where d.user_id = new.user_id
   )
   select min(d.created_at) filter (where d.attempt_type = 'initial'),

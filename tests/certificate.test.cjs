@@ -46,3 +46,33 @@ test('demonstration certificate is clearly marked', () => {
   vm.runInNewContext(fs.readFileSync(path.join(root, 'supabase/functions/_shared/certificate-template.js'), 'utf8'), context);
   assert.ok(context.PLANNECertificateTemplate.render({demo:true,completion_date:'2026-11-24'}).includes('sin validez'));
 });
+
+test('legacy default initial cannot hide an explicit final and chronology cannot invent a final', () => {
+  const app = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
+  const fn = app.slice(app.indexOf('  function normalizeDiagnosticAttempt('), app.indexOf('  async function loadDiagnosticAttempts('));
+  const context = {normalizeDiagnosticAnswers: value=>value, Date};
+  vm.runInNewContext(fn, context);
+  const normalize = context.normalizeDiagnosticAttempt;
+  assert.equal(normalize({attempt_type:'initial', answers:{attemptType:'final'}}).attemptType, 'final');
+  assert.equal(normalize({attempt_type:'final', answers:{attemptType:'initial'}}).attemptType, 'initial');
+  assert.equal(normalize({attempt_type:'final', answers:{}}).attemptType, 'final');
+  assert.equal(normalize({attempt_type:null, answers:{}}).attemptType, 'unknown');
+  const rows = [0,1].map(()=>({attempt_type:'initial',answers:{}})).map(normalize);
+  assert.ok(rows.every(r=>r.attemptType==='initial'));
+});
+
+test('all participant and configurable strings remain text, not HTML or public links', () => {
+  const context = {};
+  vm.runInNewContext(fs.readFileSync(path.join(root, 'supabase/functions/_shared/certificate-template.js'), 'utf8'), context);
+  const payload = `"><img src="https://evil.invalid" onerror='alert(1)'>&`;
+  const config = Object.fromEntries(['institution','certificateTitle','certificateText','programName','signatureLabel'].map(key=>[key,payload]));
+  const html = context.PLANNECertificateTemplate.render({full_name:payload,national_id:payload,
+    certificate_code:payload,email:'private@example.com',completion_date:'2026-11-24'}, config);
+  assert.ok(!html.includes('<img'));
+  assert.ok(!html.includes('src="https://evil.invalid"'));
+  assert.ok(html.includes('&lt;img'));
+  assert.ok(html.includes('&#39;'));
+  assert.ok(html.includes('&amp;'));
+  assert.ok(!html.includes('private@example.com'));
+  assert.ok(!/<a\b|href=/.test(html));
+});

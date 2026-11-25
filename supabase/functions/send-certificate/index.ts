@@ -38,7 +38,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     const body = await req.json();
-    if (typeof body.request_id !== "string" || !/^[0-9a-f-]{36}$/i.test(body.request_id)) {
+    if (typeof body.request_id !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(body.request_id)) {
       return json({ error: "Invalid request id" }, 400);
     }
     const { data, error } = await admin.from("certificate_requests").select("*")
@@ -46,6 +46,11 @@ Deno.serve(async (req: Request) => {
     if (error) return json({ error: "Unable to read request" }, 503);
     if (!data || data.username.toLowerCase() === "demo") return json({ error: "Request not found" }, 404);
     const certificate = data as Certificate;
+    // Client-written passed flags are not issuance authority. Fail closed if
+    // independent institutional verification is absent, unavailable or revoked.
+    const { data: verified, error: verificationError } = await admin.rpc("certificate_completion_is_verified", { p_user_id: auth.user.id });
+    if (verificationError) return json({ error: "Completion verification unavailable" }, 503);
+    if (verified !== true) return json({ error: "Completion awaiting institutional verification" }, 403);
     if (certificate.status === "sent") return json({ status: "sent" });
     // Preserve the same provider payload/key across retries, including concurrent calls.
     // Resend retains idempotency keys for 24 hours. Never retry blindly beyond that window.

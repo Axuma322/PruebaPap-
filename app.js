@@ -754,9 +754,13 @@
     return appState.remoteProgress;
   }
 
-  function normalizeDiagnosticAttempt(row, index) {
+  function normalizeDiagnosticAttempt(row) {
     var answers = normalizeDiagnosticAnswers(row.answers || {}, row.score);
-    var attemptType = row.attempt_type || answers.attemptType || (index === 0 ? "initial" : "final");
+    // Legacy rows may have a default column value "initial" but an explicit
+    // final attempt in their payload. Never infer a final attempt from position.
+    var validTypes = ["initial", "final"];
+    var attemptType = validTypes.includes(answers.attemptType) ? answers.attemptType
+      : (validTypes.includes(row.attempt_type) ? row.attempt_type : "unknown");
 
     return {
       id: row.id,
