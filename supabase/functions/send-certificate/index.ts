@@ -10,7 +10,7 @@ type Certificate = {
 };
 const pdf = (globalThis as unknown as {
   PLANNECertificatePDF: {
-    render: (request: Certificate, config: Record<string,string>, library: unknown) => Promise<string>;
+    render: (request: Certificate, config: Record<string,string>, library: unknown, brainImage: Uint8Array) => Promise<string>;
     emailMessage: (request: Certificate) => string;
   };
 }).PLANNECertificatePDF;
@@ -61,11 +61,14 @@ Deno.serve(async (req: Request) => {
       const config = {
         institution:Deno.env.get("CERTIFICATE_INSTITUTION") || "Plataforma Digital de Neuroliderazgo Educativo",
         certificateText:Deno.env.get("CERTIFICATE_TEXT") || "ha completado el recorrido educativo participativo de PLANNE, que integra diagnóstico, neuroeducación, neuroliderazgo y mejora institucional.",
-        signatureLabel:Deno.env.get("CERTIFICATE_SIGNATURE") || "Firma o responsable · pendiente de definir",
+        signatureLabel:Deno.env.get("CERTIFICATE_SIGNATURE") || "Responsable: Esteban Porras Murillo · Cédula: 503180530",
         certificateTitle:"Constancia de finalización", programName:"PLANNE",
       };
       let content: string;
-      try { content=await pdf.render(certificate,config,{PDFDocument,StandardFonts,rgb}); }
+      try {
+        const brainImage = await Deno.readFile(new URL("./assets/cerebro.png", import.meta.url));
+        content=await pdf.render(certificate,config,{PDFDocument,StandardFonts,rgb},brainImage);
+      }
       catch { return json({error:"Unable to generate certificate PDF; check text and supported characters"},422); }
       // Freeze exactly one PDF. A concurrent download/send must use the winner.
       const stored=await admin.from("certificate_requests").update({certificate_pdf_base64:content})

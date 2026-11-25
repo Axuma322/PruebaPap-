@@ -8,7 +8,7 @@
       closingMessage: "Su compromiso con el aprendizaje y la reflexión directiva contribuye a una gestión educativa más consciente. Gracias por completar este recorrido.",
       certificateTitle: "Constancia de finalización",
       certificateText: "ha completado el recorrido educativo participativo de PLANNE, que integra diagnóstico, neuroeducación, neuroliderazgo y mejora institucional.",
-      signatureLabel: "Firma o responsable · pendiente de definir",
+      signatureLabel: "Responsable: Esteban Porras Murillo · Cédula: 503180530",
       emailFunction: "send-certificate"
     },
     settings: {

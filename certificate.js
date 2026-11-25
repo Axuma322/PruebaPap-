@@ -191,7 +191,12 @@
       var content;
       if (selectedRequest.demo) {
         await loadPdfLibrary();
-        if (!demoPdf) { demoPdf = await window.PLANNECertificatePDF.render(selectedRequest, config, window.PDFLib); }
+        if (!demoPdf) {
+          var brainResponse = await fetch(window.APP_DATA.settings.brainImage);
+          if (!brainResponse.ok) { throw new Error("Certificate image unavailable"); }
+          var brainBytes = new Uint8Array(await brainResponse.arrayBuffer());
+          demoPdf = await window.PLANNECertificatePDF.render(selectedRequest, config, window.PDFLib, brainBytes);
+        }
         content = demoPdf;
       } else {
         var response = await window.supabaseClient.functions.invoke(config.emailFunction, {

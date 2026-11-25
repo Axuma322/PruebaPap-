@@ -42,7 +42,7 @@ const server=http.createServer((req,res)=>{
  const errors=[];let externals=[];
  const context=await browser.newContext();
  await context.route('**/*',route=>{if(!route.request().url().startsWith(origin)){externals.push(route.request().url());route.abort()}else route.continue()});
- const mockDownloadPdf=await globalThis.PLANNECertificatePDF.render({full_name:'Nombre Apellido',national_id:'123',completion_date:'2026-11-24T12:00:00Z',certificate_code:'PLANNE-TEST-123'},{},pdfLib);
+ const mockDownloadPdf=await globalThis.PLANNECertificatePDF.render({full_name:'Nombre Apellido',national_id:'123',completion_date:'2026-11-24T12:00:00Z',certificate_code:'PLANNE-TEST-123'},{},pdfLib,fs.readFileSync(path.join(root,'assets/cerebro.png')));
  await context.addInitScript(pdf=>{window.mockDownloadPdf=pdf;localStorage.setItem('planne:usage-guide-seen','true')},mockDownloadPdf);
  const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
  await page.goto(origin);await page.waitForSelector('#certificateDialog[open]');

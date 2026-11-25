@@ -2,3 +2,6 @@
 # This also supports projects using newer JWT signing keys.
 [functions.send-certificate]
 verify_jwt = false
+
+# Bundle the existing PLANNE artwork.
+static_files = ["./functions/send-certificate/assets/cerebro.png"]

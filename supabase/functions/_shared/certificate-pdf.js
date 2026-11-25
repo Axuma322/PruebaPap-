@@ -38,7 +38,7 @@
     if (line) { result.push(line); }
     return result;
   }
-  async function render(request, config, library) {
+  async function render(request, config, library, brainImage) {
     config = config || {};
     library = library || root.PDFLib;
     if (!library) { throw new Error("PDF library unavailable"); }
@@ -54,6 +54,10 @@
     doc.setCreationDate(date);
     doc.setModificationDate(date);
     var page = doc.addPage([841.89, 595.28]);
+    if (!brainImage) { throw new Error("Certificate brain image unavailable"); }
+    var brain = await doc.embedPng(brainImage);
+    var brainSize = brain.scaleToFit(108, 70);
+    page.drawImage(brain, { x: 60, y: 480, width: brainSize.width, height: brainSize.height });
     var regular = await doc.embedFont(StandardFonts.Helvetica);
     var bold = await doc.embedFont(StandardFonts.HelveticaBold);
     var serif = await doc.embedFont(StandardFonts.TimesRoman);
@@ -66,10 +70,10 @@
     page.drawRectangle({ x: 0, y: 0, width: 16, height: 595.28, color: blue });
     page.drawRectangle({ x: 29, y: 29, width: width - 58, height: 537.28, borderColor: blue, borderWidth: 2 });
     page.drawRectangle({ x: 36, y: 36, width: width - 72, height: 523.28, borderColor: gold, borderWidth: 0.6 });
-    function centered(value, y, font, size, min, maxLines, color, maxHeight) {
+    function centered(value, y, font, size, min, maxLines, color, maxHeight, maxWidth) {
       var wrapped;
       do {
-        wrapped = lines(value, font, size, 690);
+        wrapped = lines(value, font, size, maxWidth || 690);
         if ((wrapped.length <= maxLines && (wrapped.length - 1) * size * 1.35 <= (maxHeight || Infinity)) || size <= min) { break; }
         size -= 1;
       } while (size >= min);
@@ -78,7 +82,7 @@
         page.drawText(line, { x: (width - font.widthOfTextAtSize(line, size)) / 2, y: y - index * size * 1.35, size: size, font: font, color: color || ink });
       });
     }
-    centered(config.institution || "Plataforma Digital de Neuroliderazgo Educativo", 535, bold, 12, 10, 2, deep);
+    centered(config.institution || "Plataforma Digital de Neuroliderazgo Educativo", 535, bold, 12, 10, 2, deep, undefined, 480);
     centered(config.programName || "PLANNE", 503, bold, 18, 16, 1, blue);
     page.drawLine({ start: { x: 345, y: 487 }, end: { x: 497, y: 487 }, color: gold, thickness: 1 });
     centered(config.certificateTitle || "Constancia de finalización", 451, serif, 34, 24, 1, deep);
@@ -89,7 +93,7 @@
     var dateText = date.toLocaleDateString("es-CR", { year: "numeric", month: "long", day: "numeric", timeZone: "America/Costa_Rica" });
     centered("Fecha de finalización: " + dateText, 175, regular, 12, 12, 1, deep);
     page.drawLine({ start: { x: 285, y: 122 }, end: { x: 557, y: 122 }, color: gold, thickness: 0.8 });
-    centered(config.signatureLabel || "Firma o responsable · pendiente de definir", 104, regular, 10, 9, 1, muted);
+    centered(config.signatureLabel || "Responsable: Esteban Porras Murillo · Cédula: 503180530", 104, regular, 10, 9, 1, muted);
     centered("Código: " + text(request.certificate_code), 74, regular, 9, 8, 1, deep);
     centered(request.demo ? "MUESTRA DE DEMOSTRACIÓN · SIN VALIDEZ" : "Constancia participativa de finalización. No constituye una acreditación oficial.", 49, regular, 8, 8, 1, muted);
     return doc.saveAsBase64({ dataUri: false, useObjectStreams: false });

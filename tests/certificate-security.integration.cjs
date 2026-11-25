@@ -9,6 +9,7 @@ const root=path.join(__dirname,'..');
 const read=p=>fs.readFileSync(path.join(root,p),'utf8');
 require('../supabase/functions/_shared/certificate-pdf.js');
 const pdf=globalThis.PLANNECertificatePDF;
+const brainImage=fs.readFileSync(path.join(root,"assets/cerebro.png"));
 const user='10000000-0000-0000-0000-000000000001';
 const other='10000000-0000-0000-0000-000000000002';
 const demo='10000000-0000-0000-0000-000000000003';
@@ -102,22 +103,26 @@ async function pdfText(content) {
   return {doc,page,text};
 }
 test('authentic one-page landscape PDF, Spanish accents, exact participant fields and configurable text',async()=>{
-  const content=await pdf.render(sample,{certificateText:'Texto institucional configurable para esta prueba.'},pdfLib);
+  const content=await pdf.render(sample,{certificateText:'Texto institucional configurable para esta prueba.'},pdfLib,brainImage);
   assert.equal(Buffer.from(content,'base64').subarray(0,5).toString(),'%PDF-');
   const {doc,page,text}=await pdfText(content);
   assert.equal(doc.getPageCount(),1);assert.ok(page.getWidth()>page.getHeight());
   for(const value of [sample.full_name,sample.national_id,sample.certificate_code,'25 de noviembre de 2026','PLANNE','Texto institucional configurable'])assert.ok(text.includes(value),value);
-  assert.ok(text.includes('pendiente de definir'));
-  const demoContent=await pdf.render({...sample,demo:true},{},pdfLib);
+  assert.ok(text.includes('Esteban Porras Murillo'));
+  assert.ok(text.includes('503180530'));
+  assert.ok(!text.includes('pendiente de definir'));
+  assert.ok(page.node.Resources().lookup(pdfLib.PDFName.of('XObject'),pdfLib.PDFDict).keys().length > 0);
+  assert.deepEqual(fs.readFileSync(path.join(root,'supabase/functions/send-certificate/assets/cerebro.png')),brainImage);
+  const demoContent=await pdf.render({...sample,demo:true},{},pdfLib,brainImage);
   assert.ok((await pdfText(demoContent)).text.includes('SIN VALIDEZ'));
-  const long=await pdf.render({...sample,full_name:'Nombre compuesto '.repeat(9).trim()},{},pdfLib);
+  const long=await pdf.render({...sample,full_name:'Nombre compuesto '.repeat(9).trim()},{},pdfLib,brainImage);
   assert.equal((await pdfText(long)).doc.getPageCount(),1);
 });
 
 test('Edge: real PDF attachment equals downloads, frozen bytes, JWT/ownership, retries/concurrency and no duplicate sends',async()=>{
   const compiled=ts.transpileModule(read('supabase/functions/send-certificate/index.ts'),{reportDiagnostics:true,compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.ESNext}});
   assert.equal((compiled.diagnostics||[]).length,0);
-  const code=compiled.outputText.replace(/^import .*;$/mg,'');
+  const code=compiled.outputText.replace(/^import .*;$/mg,'').replace(/import\.meta\.url/g,JSON.stringify('file:///test/index.ts'));
   const id='20000000-0000-0000-0000-000000000001';
   const row={...sample,id,user_id:user,username:'tester',email:'private@example.com',status:'pending',certificate_pdf_base64:null,updated_at:new Date().toISOString(),email_first_attempt_at:null,email_payload:null};
   let handler,eligible=false,authValid=true,fetches=0,providerFails=true,lastPayload,updates=0;
@@ -126,7 +131,7 @@ test('Edge: real PDF attachment equals downloads, frozen bytes, JWT/ownership, r
     async rpc(name,args){assert.equal(name,'certificate_can_issue');assert.equal(args.p_user_id,user);return {data:eligible,error:null}},
     from(){let filters=[],change=null;return {select(){return this},eq(k,v){filters.push([k,v]);return this},is(k,v){filters.push([k,v]);return this},update(value){change=value;return this},
       async maybeSingle(){if(!filters.every(([k,v])=>row[k]===v))return {data:null,error:null};if(change)Object.assign(row,change,{updated_at:new Date(Date.now()+ ++updates).toISOString()});return {data:{...row},error:null}},then(ok,bad){return this.maybeSingle().then(ok,bad)}}}};
-  const deno={env:{get:key=>env[key]},serve:fn=>handler=fn};
+  const deno={readFile:async()=>brainImage,env:{get:key=>env[key]},serve:fn=>handler=fn};
   const fakeFetch=async(url,options)=>{fetches++;lastPayload=JSON.parse(options.body);assert.equal(url,'https://api.resend.com/emails');assert.equal(options.headers['Idempotency-Key'],'planne-certificate/'+id);return providerFails?new Response('{}',{status:503}):new Response('{"id":"provider-test"}',{status:200})};
   // Same JS realm as pdf-lib; the actual shared renderer is used, not stubbed.
   new Function('Deno','createClient','PDFDocument','StandardFonts','rgb','fetch',code)(deno,()=>admin,pdfLib.PDFDocument,pdfLib.StandardFonts,pdfLib.rgb,fakeFetch);

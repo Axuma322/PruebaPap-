@@ -22,7 +22,7 @@ RLS permite al participante insertar solo sus datos obligatorios y leer únicame
 2. Se abre automáticamente el modal de felicitaciones. Su mensaje se edita en `APP_DATA.certificate.closingMessage`, en `data.js`.
 3. Registra nombre completo, cédula y correo. Supabase comprueba el progreso guardado y crea la solicitud con código único.
 4. El frontend llama automáticamente a `send-certificate`. La función valida JWT, propietario, perfil real y finalización guardada.
-5. `pdf-lib@1.17.1` genera un PDF real, horizontal A4, con datos personales, fecha, código, texto configurable y espacio de firma pendiente. No se inventan logos, firmas o avales.
+5. `pdf-lib@1.17.1` genera un PDF real, horizontal A4, con datos personales, fecha, código, texto configurable, cerebro de PLANNE y responsable Esteban Porras Murillo (cédula 503180530). No se incorpora firma manuscrita ni aval oficial.
 6. La función conserva el PDF en una columna privada y envía un mensaje de felicitación mediante Resend, con el adjunto **`Certificado_PLANNE.pdf`**, Base64 y `content_type: application/pdf`.
 7. **Descargar PDF** pide a la misma función el archivo guardado. Son exactamente los mismos bytes adjuntados al correo, incluso si después cambia el texto de configuración.
 
@@ -41,7 +41,7 @@ Crear una API key con permiso de envío y configurar en **Supabase → Edge Func
 | `ALLOWED_ORIGINS` | Orígenes exactos separados por comas, sin ruta ni `/` final; por ejemplo `https://planne.dev,http://localhost:8000`, ajustados al sitio real |
 | `CERTIFICATE_INSTITUTION` | Opcional: encabezado del PDF |
 | `CERTIFICATE_TEXT` | Opcional: texto institucional/formativo del PDF |
-| `CERTIFICATE_SIGNATURE` | Opcional: etiqueta bajo el espacio de firma; predeterminado `Firma o responsable · pendiente de definir` |
+| `CERTIFICATE_SIGNATURE` | Opcional: etiqueta bajo el espacio de firma; predeterminado `Responsable: Esteban Porras Murillo · Cédula: 503180530` |
 
 `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` se leen exclusivamente del entorno servidor de Supabase. Nunca copiar la clave privada al frontend. No hace falta dar al navegador una clave de Resend.
 
@@ -115,3 +115,9 @@ node tests/certificate-browser.cjs
 ```
 
 La prueba de navegador usa Edge en Windows por defecto; `PLANNE_BROWSER` admite otra ruta de Chromium. Las pruebas utilizan una base efímera y servicios simulados, validan el PDF y la igualdad de bytes adjunto/descarga, y guardan muestras en la carpeta temporal `planne-certificate-browser`. No se ha probado todavía la entrega real al Gmail del usuario.
+
+### Imagen y responsable del PDF
+
+El cerebro original assets/cerebro.png se incluye también en functions/send-certificate/assets/cerebro.png, empaquetado mediante static_files en config.toml. Al cambiar la imagen, actualizar ambas copias. El demo usa el original del frontend; el servidor usa su copia local, sin consultas externas.
+
+El responsable predeterminado es Esteban Porras Murillo, cédula 503180530. CERTIFICATE_SIGNATURE, si está configurado, sustituye esa etiqueta; revisar cualquier valor anterior al publicar. No requiere SQL. Los PDF ya almacenados conservan su contenido y no se reenvían ni regeneran automáticamente.
