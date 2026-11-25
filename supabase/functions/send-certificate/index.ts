@@ -46,16 +46,15 @@ Deno.serve(async (req: Request) => {
     if (error) return json({ error: "Unable to read request" }, 503);
     if (!data || data.username.toLowerCase() === "demo") return json({ error: "Request not found" }, 404);
     const certificate = data as Certificate;
-    // Client-written passed flags are not issuance authority. Fail closed if
-    // independent institutional verification is absent, unavailable or revoked.
-    const { data: verified, error: verificationError } = await admin.rpc("certificate_completion_is_verified", { p_user_id: auth.user.id });
+    // Automatic validation of stored responses and backend scoring rules.
+    const { data: verified, error: verificationError } = await admin.rpc("certificate_can_issue", { p_user_id: auth.user.id });
     if (verificationError) return json({ error: "Completion verification unavailable" }, 503);
-    if (verified !== true) return json({ error: "Completion awaiting institutional verification" }, 403);
+    if (verified !== true) return json({ error: "Complete initial/final DNA and stages A-D" }, 403);
     if (certificate.status === "sent") return json({ status: "sent" });
     // Preserve the same provider payload/key across retries, including concurrent calls.
     // Resend retains idempotency keys for 24 hours. Never retry blindly beyond that window.
     if (certificate.email_first_attempt_at && Date.now() - Date.parse(certificate.email_first_attempt_at) > 23 * 3600_000) {
-      return json({ error: "Delivery requires administrator reconciliation" }, 409);
+      return json({ error: "Delivery status reconciliation required before retry" }, 409);
     }
     if (certificate.status === "sending" && Date.now() - Date.parse(certificate.updated_at) < 120_000) {
       return json({ status: "sending" }, 202);
@@ -64,10 +63,10 @@ Deno.serve(async (req: Request) => {
       institution: Deno.env.get("CERTIFICATE_INSTITUTION") || "PLANNE · Neuroliderazgo educativo",
       certificateText: Deno.env.get("CERTIFICATE_TEXT") || "ha completado el recorrido formativo de la Plataforma Digital de Neuroliderazgo Educativo, que integra diagnóstico, neuroeducación, neuroliderazgo y mejora institucional.",
       signatureLabel: Deno.env.get("CERTIFICATE_SIGNATURE") || "Coordinación del programa PLANNE",
-      programName: "PLANNE", certificateTitle: "Certificado de finalización",
+      programName: "PLANNE", certificateTitle: "Constancia de finalización",
     };
     const payload = certificate.email_payload || {
-      from, to: [certificate.email], subject: "Su certificado de finalización · PLANNE",
+      from, to: [certificate.email], subject: "Su constancia de finalización · PLANNE",
       html: template.render(certificate, config),
     };
     const firstAttempt = certificate.email_first_attempt_at || new Date().toISOString();

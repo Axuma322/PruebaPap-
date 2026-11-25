@@ -13,7 +13,7 @@
     var formattedDate = Number.isNaN(date.getTime()) ? "" : date.toLocaleDateString("es-CR", {
       year: "numeric", month: "long", day: "numeric", timeZone: "America/Costa_Rica"
     });
-    var title = config.certificateTitle || "Certificado de finalización";
+    var title = config.certificateTitle || "Constancia de finalización";
     return '<!doctype html><html lang="es"><head><meta charset="utf-8">'
       + '<meta name="viewport" content="width=device-width, initial-scale=1">'
       + '<title>' + escape(title) + '</title><style>'
@@ -32,7 +32,8 @@
       + escape(config.certificateText || "ha completado el recorrido formativo de la Plataforma Digital de Neuroliderazgo Educativo.") + '</p>'
       + '<p><strong>' + escape(config.programName || "PLANNE") + '</strong></p><p>Fecha de finalización: ' + escape(formattedDate) + '</p>'
       + '<p class="signature">' + escape(config.signatureLabel || "Coordinación del programa PLANNE") + '</p>'
-      + '<p class="code">Código: ' + escape(request.certificate_code) + '</p></main></body></html>';
+      + '<p class="code">Código: ' + escape(request.certificate_code) + '</p>'
+      + '<p class="code">Constancia de participación y finalización del recorrido. No constituye una acreditación oficial.</p></main></body></html>';
   }
 
   root.PLANNECertificateTemplate = { render: render, escape: escape };

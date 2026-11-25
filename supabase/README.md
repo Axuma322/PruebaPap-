@@ -1,116 +1,122 @@
-# Certificados de PLANNE · configuración del backend
+# Constancias de PLANNE · configuración definitiva
 
-El frontend está preparado para solicitar el certificado, consultar su estado y abrir una vista HTML imprimible. Esta carpeta añade la migración y una Edge Function implementada para enviar el certificado HTML por Resend. **Estos archivos no se han ejecutado ni desplegado contra el proyecto real.**
+PLANNE emite una constancia participativa de finalización, no una acreditación oficial. La emisión es automática al completar los requisitos y registrar el formulario. **No hay aprobación institucional ni intervención humana por participante.** Estos archivos no se han ejecutado ni desplegado contra Supabase real.
 
-**Revisión de seguridad:** la emisión ahora requiere una revisión institucional independiente. La existencia de filas `passed = true` escritas por el navegador solo permite registrar una solicitud pendiente. No habilita imprimir ni enviar el certificado. Leer [SECURITY_REVIEW.md](SECURITY_REVIEW.md) antes de activar.
+## Flujo del participante
 
-## 1. Revisar y ejecutar la migración
+1. Completa DNA inicial y final, A, B, C y D. A/C/D mantienen 70 %; B se completa con sus 20 respuestas Likert, sin nota mínima.
+2. Se abre la ventana de felicitaciones. El mensaje y los textos de impresión se editan en `APP_DATA.certificate`, en `data.js`.
+3. Introduce nombre, cédula y correo, y registra la solicitud.
+4. PostgreSQL valida las respuestas guardadas, calcula la fecha de finalización, genera el código único y guarda una solicitud por usuario.
+5. El frontend invoca `send-certificate` automáticamente. La función verifica JWT, propietario y requisitos en el servidor y solicita el envío a Resend.
+6. Se muestra la confirmación y se permite consultar/imprimir la constancia. El correo contiene **HTML, sin PDF adjunto**. El navegador permite guardar la vista imprimible como PDF.
 
-Revisar las migraciones [001](migrations/202611240001_certificate_requests.sql) y [002](migrations/202611240002_certificate_security_review.sql). Para una instalación nueva, aplicar ambas una sola vez, en ese orden. Si ya se aplicó una versión de 001, aplicar solo 002: incluye la corrección de las funciones anteriores. No ejecutar `db reset` ni aplicar a ciegas un historial de migraciones que no represente las tablas existentes.
+Si falla el correo, la solicitud permanece guardada y puede reintentarse. Recargar no vuelve a enviar automáticamente. El botón **Actualizar estado** consulta el estado de entrega.
 
-Prerequisitos: las tablas actuales `profiles`, `diagnostic_answers` y `quiz_attempts`, con las columnas que consume `app.js`. El SQL añade los objetos de certificados y revisiones. No cambia datos ni políticas de las tablas de aprendizaje existentes. Antes de aplicar, revisar los permisos reales mediante [audit/rls_read_only.sql](audit/rls_read_only.sql), que solo lee metadatos.
+## Probar el modal antes de ejecutar SQL
 
-La tabla conserva:
+Servir el proyecto por HTTP e iniciar sesión con el perfil `demo` existente. No requiere las tablas nuevas de certificados:
 
-| Campo | Fuente / uso |
-|---|---|
-| `user_id` | Usuario autenticado; restricción única para evitar solicitudes duplicadas |
-| `username` | Perfil existente, calculado en servidor |
-| `full_name`, `national_id`, `email` | Formulario del participante |
-| `completion_date` | Fecha más reciente entre las primeras finalizaciones válidas de los requisitos |
-| `certificate_code` | UUID aleatorio con prefijo `PLANNE-`, generado por PostgreSQL y único |
-| `status` | `pending`, `sending`, `sent` o `failed` |
-| `completion_snapshot` | Fechas de DNA inicial/final y de finalización de las cuatro etapas |
-| `created_at`, `updated_at` | Fechas de creación y modificación gestionadas por el servidor |
-| `certificate_sent_at`, `email_delivery_id` | Confirmación de aceptación por el proveedor |
-| `email_first_attempt_at`, `email_payload` | Control de reintentos e idempotencia del envío |
+1. En el mapa de módulos, buscar **Certificado · demostración**.
+2. Pulsar **Simular finalización y probar constancia**. Simula exclusivamente el cierre; no cambia el progreso ni requiere completar evaluaciones.
+3. Probar campos vacíos, correo inválido y después datos ficticios válidos.
+4. Registrar la simulación y pulsar **Ver certificado / guardar PDF**.
+5. Usar **Probar otra vez con datos ficticios** para reiniciar la prueba.
+6. Revisar la ventana y la impresión en móvil y escritorio.
 
-RLS permite leer solo las columnas necesarias de la solicitud propia y registrar únicamente `user_id`, `full_name`, `national_id` y `email`. El navegador no puede actualizar estado, código, fechas ni datos de entrega, ni leer payloads del proveedor, snapshots o revisiones. No hay acceso anónimo ni política de borrado o actualización para participantes.
+No se consulta ni escribe `certificate_requests`, no se invoca la función de correo y no se guardan los datos ficticios en almacenamiento persistente. El perfil demo sí sigue necesitando su sesión de Supabase Auth existente. El botón de simulación y el de reinicio de prueba no aparecen para participantes reales.
 
-El trigger valida la identidad y rechaza el perfil `demo`. Exige evidencia guardada de DNA inicial y final y un intento `passed = true` para cada etapa A–D. En B, ese valor significa autoevaluación completada para el instrumento nuevo; se respeta la aprobación de la evaluación anterior. No acepta una lista de etapas enviada por el navegador como prueba de finalización.
+## SQL definitivo: ejecutar manualmente en orden
 
-La detección en pantalla reutiliza el progreso actual de PLANNE y los intentos DNA normalizados. SQL y `app.js` priorizan un `answers.attemptType` válido sobre el predeterminado de columna `initial`; si el payload no identifica el tipo, usan una columna válida. No infieren finales por posición ni convierten dos filas `initial` en inicial/final. Los registros ambiguos requieren investigación, sin reescribir los datos.
+Las migraciones anteriores todavía no se aplicaron. El orden de instalación nueva es:
 
-## Revisión institucional requerida
+1. [202611240001_certificate_requests.sql](migrations/202611240001_certificate_requests.sql)
+2. [202611240002_certificate_automatic_completion.sql](migrations/202611240002_certificate_automatic_completion.sql)
 
-Después de verificar por medios independientes que la persona completó el recorrido, un operador autorizado puede ejecutar en una sesión administrativa:
+El antiguo archivo `202611240002_certificate_security_review.sql` fue sustituido. No ejecutarlo ni mezclar versiones anteriores. No se crean tablas, RPC ni estados de aprobación humana. No utilizar `db reset`.
 
-```sql
-select public.review_certificate_completion(
-  p_user_id := 'UUID_DEL_PARTICIPANTE'::uuid,
-  p_approved := true,
-  p_reviewer := 'Identificación del responsable',
-  p_notes := 'Referencia de la evidencia independiente revisada'
-);
+Antes de aplicar, ejecutar y revisar [audit/rls_read_only.sql](audit/rls_read_only.sql): solo lee metadatos. Las políticas reales no están versionadas en este repositorio y no se han inspeccionado en producción.
+
+La 002 exige RLS ya activado en `quiz_attempts`, `diagnostic_answers` y `progress`. Si no lo está, revierte su transacción y muestra el prerrequisito pendiente. Revisar los permisos/políticas de propietario del proyecto antes de continuar; no desactivar ese control ni conceder acceso público para evitar un error. Las políticas existentes deben permitir el registro/lectura del propio usuario según los flujos actuales.
+
+No se borran ni reescriben resultados existentes. La 002 añade catálogo de instrumentos, validadores automáticos para escrituras futuras y límites de propietario; no elimina políticas existentes. Revisar conflictos con triggers ya desplegados. Si una migración falla, investigar el error antes de continuar.
+
+## Validación automática y alcance
+
+- El catálogo SQL se deriva de los instrumentos actuales de `data.js`: DNA 30 ítems, A 20 preguntas, B 20 ítems Likert, C 10 preguntas y D 20 ítems Likert.
+- El backend exige identificadores completos y únicos, opciones válidas y frecuencias entre 1 y 4; recalcula los resultados. Ignora las banderas `correct`, `score` y `passed` proporcionadas por el navegador para decidir la constancia.
+- Los triggers de futuras escrituras del participante recalculan `score`/`passed` en `quiz_attempts` y la puntuación/tipo de `diagnostic_answers`. No cambian la estructura ni el formato de los formularios existentes.
+- Para la nueva B, `passed` significa cuestionario completado, incluso con 25 %. La evaluación B anterior de diez preguntas se admite solo para registros previos a instalar el catálogo y con 70 % recalculado. Nuevas escrituras no pueden retroceder su fecha para seleccionar ese formato antiguo.
+- La emisión no confía en `progress`; sigue siendo el estado de navegación del frontend. Falsificar solo su lista de etapas no habilita una constancia.
+- Se mantiene la corrección de diagnósticos: el tipo válido del payload tiene prioridad sobre el predeterminado `initial`; no se inventa un final por orden de filas.
+- Los registros históricos con respuestas ausentes o formatos no representados en el catálogo no se convierten automáticamente en evidencia válida ni se borran. Un problema de formato requiere una corrección técnica/versionado de instrumentos; no una autorización de certificados.
+- Estas verificaciones no prueban que una persona haya leído los PDFs o que sus auto-reportes sean sinceros. Las preguntas y opciones son públicas: alguien puede automatizar respuestas válidas. Es una constancia participativa, sin promesa de examen supervisado o protección total contra manipulación.
+
+Ver [SECURITY_REVIEW.md](SECURITY_REVIEW.md) para el alcance técnico y sus límites.
+
+## Mantener sincronizado el catálogo
+
+Antes de ejecutar las migraciones:
+
+```sh
+node scripts/certificate-catalog.cjs --check
 ```
 
-Esto es una **operación administrativa con escritura**, no forma parte del script de auditoría de solo lectura y no se ha ejecutado. No utilizarla en el navegador ni aprobar basándose solamente en `passed`, `score` o respuestas del cliente. La función exige los requisitos guardados y registra una revisión con una huella de la evidencia. Solo administración/servidor puede invocarla; `authenticated` y `anon` no pueden aprobar, leer revisiones ni consultar otros participantes mediante las RPC de revisión.
+Si cambia el instrumento antes del primer despliegue, regenerar con `node scripts/certificate-catalog.cjs`. Después de desplegar, conservar el historial y preparar una migración de catálogo versionada; no reejecutar ni editar una migración aplicada. Mantener versiones históricas compatibles cuando cambien IDs o preguntas.
 
-Para revocar una aprobación, un operador autorizado registra otra revisión con `p_approved := false` y una justificación. La última revisión prevalece y no se borra el historial. Una modificación posterior de los diagnósticos/intentos o del username invalida la aprobación anterior.
+## Objetos y privacidad
 
-La 002 registra los UUID de los perfiles `demo` actuales en `certificate_demo_accounts`, para que renombrarlos no permita certificar. Un operador debe registrar también allí los UUID de nuevas cuentas demo antes de utilizarlas, mediante una inserción administrativa; no se permite esa operación al participante. El nombre demo actual también se comprueba siempre. No aprobar cuentas de prueba.
+`certificate_requests` guarda `user_id`, username de servidor, nombre, cédula, correo, fecha de finalización, código aleatorio único, estado, snapshot de requisitos y fechas de creación/actualización. Los campos `certificate_sent_at`, `email_delivery_id`, `email_first_attempt_at` y `email_payload` controlan la entrega y los reintentos.
 
-Mientras no se adapte la validación de las evaluaciones a un backend confiable, esta revisión independiente es obligatoria. Se conservan las escrituras actuales de las evaluaciones para no romper su funcionamiento. No hay una emisión segura totalmente automática a partir de los datos actuales del cliente.
+RLS limita la lectura al propietario y solo a columnas necesarias. El participante solo puede insertar `user_id`, `full_name`, `national_id` y `email`; no puede cambiar código, fecha, estado o recibos de correo ni leer payloads de Resend. No hay acceso anónimo. La función solo responde con estados/errores, no con datos personales.
 
-## 2. Configurar Resend y secretos
+`certificate_instruments` es de escritura administrativa y no acepta cambios del navegador. `certificate_demo_accounts` conserva los UUID de los perfiles demo conocidos aunque se renombren. Un trigger en `profiles` registra automáticamente las cuentas nuevas o renombradas a `demo`; el nombre actual también se comprueba. No hace falta registrar ni autorizar participantes manualmente.
 
-Crear una cuenta en Resend, verificar el dominio remitente y generar una API key con permisos de envío. Configurar en **Supabase → Edge Functions → Secrets**, sin guardarlos en Git ni en archivos públicos:
+No se añaden URLs públicas con nombre, cédula o correo. El PDF local no es firmado digitalmente y el código no constituye una acreditación externa. Resend recibe el destinatario y el HTML que incluye el nombre/cédula para el envío solicitado. Configurar privacidad, retención y tracking según las necesidades del proyecto.
+
+## Configurar Resend y la Edge Function
+
+Crear/verificar un dominio remitente en Resend y configurar en **Supabase → Edge Functions → Secrets**, nunca en Git ni en el navegador:
 
 | Secreto | Valor |
 |---|---|
-| `RESEND_API_KEY` | Clave privada de Resend |
-| `CERTIFICATE_FROM` | Remitente verificado, por ejemplo `PLANNE <certificados@su-dominio>` |
-| `ALLOWED_ORIGINS` | Orígenes exactos separados por comas, sin `/` final: dominio real de Pages y los entornos locales que se necesiten |
-| `CERTIFICATE_INSTITUTION` | Opcional: nombre institucional del certificado enviado |
-| `CERTIFICATE_TEXT` | Opcional: texto institucional del certificado enviado |
-| `CERTIFICATE_SIGNATURE` | Opcional: cargo o coordinación responsable |
+| `RESEND_API_KEY` | Clave privada de envío de Resend |
+| `CERTIFICATE_FROM` | Remitente verificado: `PLANNE <certificados@su-dominio>` |
+| `ALLOWED_ORIGINS` | Orígenes exactos separados por comas, sin `/` final: dominio real de Pages y entornos locales necesarios |
+| `CERTIFICATE_INSTITUTION` | Opcional: encabezado del correo/constancia |
+| `CERTIFICATE_TEXT` | Opcional: texto formativo personalizado |
+| `CERTIFICATE_SIGNATURE` | Opcional: identificación del programa |
 
-La función utiliza las variables del entorno Supabase `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY`, exclusivamente en el servidor. No copiar esta última a `supabaseClient.js`. El repositorio y el frontend no contienen claves privadas.
+`SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` se utilizan exclusivamente en el entorno servidor de Supabase. No copiar la clave privada a `supabaseClient.js`. Los textos del correo se configuran con los secretos opcionales y la impresión con `data.js`; mantenerlos alineados. La plantilla visual compartida está en `functions/_shared/certificate-template.js`.
 
-El mensaje de felicitación y los textos de la impresión local se editan en `APP_DATA.certificate`, en `data.js`. La plantilla visual compartida está en `functions/_shared/certificate-template.js`. Mantener los textos institucionales del frontend y los secretos del backend alineados si se personalizan.
-
-## 3. Desplegar la Edge Function
-
-Desde una terminal con la CLI de Supabase instalada y autenticada, en la raíz del repositorio:
+Desde la raíz del repositorio, con la CLI autenticada, **cuando se decida desplegar**:
 
 ```sh
 supabase functions deploy send-certificate --project-ref SU_PROJECT_REF
 ```
 
-`supabase/config.toml` desactiva la comprobación JWT heredada del gateway para esta función. **El handler valida explícitamente el Bearer token con `auth.getUser(token)`** antes de consultar una solicitud y exige que pertenezca al usuario autenticado. No retirar esa validación. Referencias: [autenticación de Edge Functions](https://supabase.com/docs/guides/functions/auth-legacy-jwt) y [configuración de funciones](https://supabase.com/docs/guides/functions/function-configuration).
+`config.toml` desactiva el verificador heredado del gateway; el handler valida explícitamente el token del usuario mediante `auth.getUser(token)` y comprueba propietario y requisitos. No retirar esa autenticación. La instalación necesita aplicar ambas migraciones y publicar el frontend junto con la función compatible. Este trabajo no ejecuta esos comandos.
 
-La llamada automática después de guardar el formulario solo se realiza si ya existe una revisión vigente. En otro caso la solicitud queda pendiente; una vez revisada, el participante utiliza **Actualizar estado** y puede imprimir o solicitar el envío. La Edge Function vuelve a comprobar la revisión vigente en el servidor antes de enviar. Si no existe la RPC o falla la verificación, no envía. No hay un cron ni una cola de reintentos en segundo plano.
+## Duplicados y reintentos
 
-## 4. Entrega, reintentos y alcance del certificado
+La restricción única por `user_id` y el bloqueo de formulario evitan solicitudes repetidas. La función reserva la entrega con una actualización condicional; llamadas concurrentes ven `sending`. Para Resend se reutilizan el mismo payload y la misma clave de idempotencia.
 
-- Se envía el **certificado en HTML dentro del correo**. No se genera un PDF adjunto en el backend. En la app se ofrece una vista imprimible que permite guardar PDF desde el navegador.
-- `status = sent` significa que Resend aceptó el envío, no que el destinatario lo recibió o abrió. Para confirmar entregas y rebotes haría falta añadir un webhook del proveedor.
-- Las llamadas concurrentes reservan la solicitud por `updated_at`; una reserva reciente tiene dos minutos para terminar. Cada solicitud utiliza siempre el mismo payload y clave de idempotencia del proveedor.
-- Resend conserva esas claves durante 24 horas. La función permite reintentos durante 23 horas desde el primer intento y luego exige revisión administrativa, para evitar repetir un correo cuyo envío hubiera quedado incierto. Véase [idempotencia en Resend](https://resend.com/docs/dashboard/emails/idempotency-keys).
-- Ante un estado incierto o vencido, consultar los registros de Resend y `email_delivery_id` antes de intervenir. Si se confirma la entrega, un administrador puede registrar `sent` y la fecha correspondiente. No reiniciar el control de idempotencia ni borrar la solicitud sin comprobar el envío.
-- No se añade enlace público de consulta ni URL pública con cédulas. El código identifica la solicitud; no es una firma criptográfica ni una acreditación externa.
-- Los datos personales solo se conservan en la tabla protegida y, al enviar, se procesan por Resend. Definir institucionalmente acceso administrativo, conservación y procedimiento para corregir datos antes de la puesta en producción.
+Resend conserva esas claves durante 24 horas. Se admiten reintentos durante 23 horas desde el primer intento. Después de un envío incierto vencido, se requiere resolver técnicamente el estado de entrega antes de repetirlo, para evitar duplicados; **no se requiere aprobación de la constancia**. Consultar los recibos del proveedor. No hay un cron de reintentos; el participante puede reintentar desde la app.
 
-## 5. Comprobación después de configurar
+`sent` significa aceptación por Resend, no entrega o apertura confirmada. Para registrar rebotes/entrega real haría falta un webhook del proveedor. No se envía un adjunto PDF.
 
-1. Probar en un entorno aislado con una cuenta real de prueba: inicial y final DNA y etapas A–D completas. Sin revisión institucional, comprobar que imprimir/enviar sigue bloqueado.
-2. Confirmar apertura automática, validación del formulario y una sola solicitud al hacer doble clic o recargar.
-3. Verificar código, fecha y snapshot calculados por servidor.
-4. Confirmar que otra cuenta no puede leer ni modificar esa solicitud y que `demo` no puede insertarla.
-5. Después de una revisión independiente autorizada, revisar certificado impreso, recepción del correo y coherencia de textos institucionales. Revocar/cambiar evidencia y comprobar que se bloquea otra emisión.
-6. Simular un error del proveedor y comprobar que el reintento conserva la misma solicitud.
-7. Comprobar que login, DNA, RFAN, COPEI y modo demo continúan funcionando.
+Referencias: [autenticación de Edge Functions](https://supabase.com/docs/guides/functions/auth-legacy-jwt), [RLS](https://supabase.com/docs/guides/database/postgres/row-level-security) e [idempotencia de Resend](https://resend.com/docs/dashboard/emails/idempotency-keys).
 
-Comprobaciones locales sin dependencias adicionales de la app:
+## Pruebas locales
 
 ```sh
 node --test tests/certificate.test.cjs
 node --check certificate.js
 node --check app.js
-node --check data.js
+node scripts/certificate-catalog.cjs --check
 ```
 
-La prueba de integración `tests/certificate-security.integration.cjs` necesita **solo para pruebas** `@electric-sql/pglite` y TypeScript 5.8.3, instalados en un directorio temporal. No se añaden dependencias al frontend. Ejecutarla con `NODE_PATH` apuntando a ese directorio `node_modules`; crea una base PostgreSQL efímera y simula Auth/Resend, sin conexiones al proyecto real. Ejemplo PowerShell:
+Las pruebas de integración usan dependencias solo de desarrollo en un directorio temporal, sin añadir paquetes al frontend:
 
 ```powershell
 $planneTestDir = Join-Path $env:TEMP 'planne-security-tests'
@@ -118,3 +124,7 @@ npm install --prefix $planneTestDir @electric-sql/pglite typescript@5.8.3 --no-a
 $env:NODE_PATH = Join-Path $planneTestDir 'node_modules'
 node --test tests/certificate-security.integration.cjs
 ```
+
+Se crean bases efímeras y servicios simulados. Después de configurar producción, comprobar con una cuenta de prueba el recorrido completo, el correo real, la recuperación tras recargar y los permisos entre usuarios. No se ha realizado esa prueba contra Supabase real.
+
+La prueba de navegador `node tests/certificate-browser.cjs` necesita `playwright-core` en el mismo directorio temporal y un navegador instalado. Por defecto utiliza Edge en Windows; `PLANNE_BROWSER` puede indicar otra ruta de Chromium. Inicia un servidor de prueba en loopback, usa Supabase simulado y guarda capturas/PDF de ejemplo en la carpeta temporal `planne-certificate-browser`.

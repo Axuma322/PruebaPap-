@@ -214,7 +214,7 @@ Su aporte consiste en articular reconocimiento de necesidades, formación autoge
 
 ## Estado del proyecto y próximos pasos
 
-La interfaz utiliza una paleta institucional azul rey. El cierre del programa ofrece solicitud de certificado al completar **DNA inicial y final y las etapas A–D**. La impresión y el envío requieren además una **revisión institucional independiente**: los resultados escritos por el cliente no se consideran evidencia suficiente para emitir. Incluye aislamiento demo y preparación del envío HTML por correo. Antes de activar, revisar la [revisión de seguridad](supabase/SECURITY_REVIEW.md) y la [configuración en Supabase](supabase/README.md): requiere las migraciones 001 y 002, revisión de permisos, secretos y despliegue de la Edge Function revisada.
+La interfaz utiliza una paleta institucional azul rey. El cierre ofrece una constancia participativa al completar **DNA inicial y final y las etapas A–D**. El participante registra sus datos y se solicita el envío HTML automáticamente, sin aprobación posterior. El backend valida respuestas y recalcula puntuaciones; B se completa con sus 20 respuestas. Incluye una simulación del modal y de impresión en modo demo, sin solicitudes ni correos reales. Antes de activar, revisar el [alcance de seguridad](supabase/SECURITY_REVIEW.md) y la [configuración en Supabase](supabase/README.md): requiere las migraciones 001 y 002 automáticas, permisos, secretos y despliegue de la Edge Function. No es una acreditación oficial ni un examen supervisado.
 
 **Estado:** implementación académica con tres módulos desarrollados e integración de Supabase en el código. La operación completa depende de la configuración y disponibilidad del backend.
 

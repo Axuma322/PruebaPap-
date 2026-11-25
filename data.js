@@ -6,7 +6,7 @@
       programName: "PLANNE",
       institution: "PLANNE · Neuroliderazgo educativo",
       closingMessage: "Su compromiso con el aprendizaje y la reflexión directiva contribuye a una gestión educativa más consciente. Gracias por completar este recorrido.",
-      certificateTitle: "Certificado de finalización",
+      certificateTitle: "Constancia de finalización",
       certificateText: "ha completado el recorrido formativo de la Plataforma Digital de Neuroliderazgo Educativo, que integra diagnóstico, neuroeducación, neuroliderazgo y mejora institucional.",
       signatureLabel: "Coordinación del programa PLANNE",
       emailFunction: "send-certificate"

@@ -10,8 +10,7 @@
   var generation = 0;
   var autoShown = false;
   var pendingOpen = false;
-  var verified = false;
-  // Match the column-level grant; never fetch provider payloads or review notes.
+  // Match the column-level grant; never fetch provider payloads.
   var requestColumns = "id,user_id,username,full_name,national_id,email,completion_date,certificate_code,status,certificate_sent_at,created_at,updated_at";
   var config = window.APP_DATA.certificate;
 
@@ -26,7 +25,6 @@
   function statusText() {
     if (!request) { return "Complete sus datos para solicitar el certificado de finalización."; }
     if (request.demo) { return "Solicitud simulada. No se guardó ni se envió ningún correo."; }
-    if (!verified) { return "Tu solicitud de certificado ya fue registrada. Está pendiente de verificación institucional antes de emitir el certificado."; }
     if (request.status === "sent") { return "Su certificado fue enviado al correo registrado."; }
     if (request.status === "sending") { return "Su solicitud está registrada y el envío está en proceso."; }
     return "Tu solicitud de certificado ya fue registrada. El certificado se enviará al correo indicado cuando se complete el envío.";
@@ -36,18 +34,19 @@
     byId("certificateSummary").hidden = !visible;
     byId("certificateSummaryTitle").textContent = context && context.demo ? "Certificado · demostración" : "Ha completado PLANNE";
     byId("certificateSummaryStatus").textContent = loading ? "Consultando su solicitud…" : statusText();
-    byId("certificateOpenButton").textContent = request ? "Consultar certificado" : (context && context.demo ? "Ver cierre de demostración" : "Solicitar certificado");
+    byId("certificateOpenButton").textContent = request ? "Consultar constancia" : (context && context.demo ? "Simular finalización y probar constancia" : "Solicitar constancia");
     byId("certificateForm").hidden = Boolean(request);
     byId("certificateSubmitButton").disabled = saving || loading;
     byId("certificateRegistered").hidden = !request;
     byId("certificateDemoNotice").hidden = !(context && context.demo);
     byId("certificateRequestStatus").textContent = statusText();
     byId("certificateCode").textContent = request ? "Código: " + request.certificate_code : "";
-    byId("certificatePrintButton").hidden = !request || (!request.demo && !verified);
-    byId("certificateEmailButton").hidden = !request || request.demo || !verified || request.status === "sent";
+    byId("certificatePrintButton").hidden = !request;
+    byId("certificateEmailButton").hidden = !request || request.demo || request.status === "sent";
     byId("certificateEmailButton").disabled = emailing;
     byId("certificateRefreshButton").hidden = !request || request.demo;
     byId("certificateRefreshButton").disabled = loading;
+    byId("certificateDemoResetButton").hidden = !(context && context.demo);
   }
   function open() {
     if (!context || (!context.demo && !eligible(context))) { return; }
@@ -56,7 +55,7 @@
     if (!loaded && !context.demo) { load(); return; }
     pendingOpen = false;
     byId("certificateClosingMessage").textContent = config.closingMessage;
-    byId("certificateTitle").textContent = context.demo ? "Cierre de PLANNE · demostración" : "Felicitaciones por completar PLANNE";
+    byId("certificateTitle").textContent = context.demo ? "Felicitaciones por completar PLANNE · demostración" : "Felicitaciones por completar PLANNE";
     paint();
     if (!byId("certificateDialog").open) { byId("certificateDialog").showModal(); }
   }
@@ -64,7 +63,6 @@
     generation += 1;
     context = null; request = null; loaded = false; loading = false;
     saving = false; emailing = false; autoShown = false; pendingOpen = false;
-    verified = false;
     if (byId("certificateDialog")) {
       byId("certificateDialog").close();
       byId("certificateForm").reset();
@@ -81,8 +79,6 @@
       if (token !== generation) { return; }
       if (response.error) { throw response.error; }
       request = response.data;
-      verified = await verify(token);
-      if (token !== generation) { return; }
       loaded = true;
     } catch (error) {
       if (token !== generation) { return; }
@@ -104,14 +100,6 @@
     paint();
     if (eligible(context) && !loaded && !loading) { load(); }
   }
-  async function verify(token) {
-    try {
-      var result = await window.supabaseClient.rpc("certificate_verification_status");
-      return token === generation && !result.error && result.data === true;
-    } catch (error) {
-      return false;
-    }
-  }
   async function sendEmail() {
     if (!request || request.demo || emailing || !context || context.demo || request.status === "sent") { return; }
     var token = generation;
@@ -119,18 +107,19 @@
     emailing = true; paint();
     message("Su solicitud está guardada. Preparando el envío por correo…");
     try {
-      verified = await verify(token);
-      if (token !== generation) { return; }
-      if (!verified) { message(statusText()); return; }
       var result = await window.supabaseClient.functions.invoke(config.emailFunction, { body: { request_id: requestId } });
       if (token !== generation) { return; }
+      if (!result.error && result.data && result.data.status === "sending") {
+        request.status = "sending";
+        message("El envío está en proceso. Puede actualizar el estado en unos momentos.");
+        return;
+      }
       if (result.error || !result.data || result.data.status !== "sent") { throw new Error("Envío pendiente"); }
       request.status = "sent";
       message("Solicitud registrada. El certificado fue enviado al correo indicado.");
     } catch (error) {
       if (token !== generation) { return; }
-      verified = false;
-      message("Su solicitud quedó registrada. Actualice el estado para comprobar la verificación institucional y la disponibilidad del envío.");
+      message("Su solicitud quedó registrada, pero no se pudo confirmar el envío. Puede consultar su constancia y reintentar el correo más tarde.");
     } finally {
       if (token === generation) { emailing = false; paint(); }
     }
@@ -141,6 +130,7 @@
     var form = event.currentTarget;
     var fields = ["full_name", "national_id", "email"];
     fields.forEach(function (name) { form.elements[name].value = form.elements[name].value.trim(); });
+    form.elements.email.setCustomValidity(/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.elements.email.value) ? "" : "Introduzca un correo electrónico válido.");
     if (!form.reportValidity()) { message("Complete su nombre, cédula y un correo electrónico válido."); return; }
     var values = {};
     fields.forEach(function (name) { values[name] = form.elements[name].value; });
@@ -163,13 +153,9 @@
         }
       }
       loaded = true;
-      if (!context.demo) {
-        verified = await verify(token);
-        if (token !== generation) { return; }
-      }
       form.reset();
       message(statusText());
-      if (!context.demo && verified) { sendEmail(); }
+      if (!context.demo) { sendEmail(); }
     } catch (error) {
       if (token !== generation) { return; }
       message("No se pudo registrar la solicitud. Sus datos siguen en el formulario; revise la conexión e intente de nuevo.");
@@ -177,20 +163,11 @@
       if (token === generation) { saving = false; paint(); }
     }
   }
-  async function printCertificate() {
+  function printCertificate() {
     if (!request) { return; }
     var popup = window.open("", "_blank");
     if (!popup) { message("Permita abrir una ventana para ver e imprimir su certificado."); return; }
     popup.opener = null;
-    if (!request.demo) {
-      var token = generation;
-      verified = await verify(token);
-      if (token !== generation || !verified || !request) {
-        popup.close();
-        if (token === generation) { message(statusText()); paint(); }
-        return;
-      }
-    }
     popup.document.open();
     popup.document.write(window.PLANNECertificateTemplate.render(request, config));
     popup.document.close();
@@ -202,6 +179,13 @@
     byId("certificateForm").addEventListener("submit", submit);
     byId("certificateEmailButton").addEventListener("click", sendEmail);
     byId("certificateRefreshButton").addEventListener("click", load);
+    byId("certificateDemoResetButton").addEventListener("click", function () {
+      if (!context || !context.demo) { return; }
+      request = null;
+      byId("certificateForm").reset();
+      message("");
+      open();
+    });
     byId("certificatePrintButton").addEventListener("click", printCertificate);
   });
 })();
