@@ -9,7 +9,7 @@
   <script src="data.js" defer></script>
   <script src="storage.js" defer></script>
   <script src="supabaseClient.js" defer></script>
-  <script src="supabase/functions/_shared/certificate-template.js" defer></script>
+  <script src="supabase/functions/_shared/certificate-pdf.js" defer></script>
   <script src="certificate.js" defer></script>
   <script src="app.js" defer></script>
 </head>
@@ -199,7 +199,7 @@
       <p id="certificateRequestStatus"></p>
       <p id="certificateCode"></p>
       <div class="quiz-result-actions">
-        <button class="primary-button" id="certificatePrintButton" type="button">Ver certificado / guardar PDF</button>
+        <button class="primary-button" id="certificatePrintButton" type="button">Descargar PDF</button>
         <button class="secondary-button" id="certificateEmailButton" type="button">Reintentar envío por correo</button>
         <button class="secondary-button" id="certificateRefreshButton" type="button">Actualizar estado</button>
         <button class="secondary-button" id="certificateDemoResetButton" type="button" hidden>Probar otra vez con datos ficticios</button>

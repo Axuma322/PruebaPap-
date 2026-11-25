@@ -10,6 +10,9 @@
   var generation = 0;
   var autoShown = false;
   var pendingOpen = false;
+  var downloading = false;
+  var demoPdf = "";
+  var pdfLibraryPromise = null;
   // Match the column-level grant; never fetch provider payloads.
   var requestColumns = "id,user_id,username,full_name,national_id,email,completion_date,certificate_code,status,certificate_sent_at,created_at,updated_at";
   var config = window.APP_DATA.certificate;
@@ -42,11 +45,13 @@
     byId("certificateRequestStatus").textContent = statusText();
     byId("certificateCode").textContent = request ? "Código: " + request.certificate_code : "";
     byId("certificatePrintButton").hidden = !request;
+    byId("certificatePrintButton").disabled = downloading;
     byId("certificateEmailButton").hidden = !request || request.demo || request.status === "sent";
     byId("certificateEmailButton").disabled = emailing;
     byId("certificateRefreshButton").hidden = !request || request.demo;
     byId("certificateRefreshButton").disabled = loading;
     byId("certificateDemoResetButton").hidden = !(context && context.demo);
+    byId("certificateDemoResetButton").disabled = downloading;
   }
   function open() {
     if (!context || (!context.demo && !eligible(context))) { return; }
@@ -63,6 +68,7 @@
     generation += 1;
     context = null; request = null; loaded = false; loading = false;
     saving = false; emailing = false; autoShown = false; pendingOpen = false;
+    downloading = false; demoPdf = "";
     if (byId("certificateDialog")) {
       byId("certificateDialog").close();
       byId("certificateForm").reset();
@@ -163,14 +169,54 @@
       if (token === generation) { saving = false; paint(); }
     }
   }
-  function printCertificate() {
-    if (!request) { return; }
-    var popup = window.open("", "_blank");
-    if (!popup) { message("Permita abrir una ventana para ver e imprimir su certificado."); return; }
-    popup.opener = null;
-    popup.document.open();
-    popup.document.write(window.PLANNECertificateTemplate.render(request, config));
-    popup.document.close();
+  function loadPdfLibrary() {
+    if (window.PDFLib) { return Promise.resolve(); }
+    if (!pdfLibraryPromise) {
+      pdfLibraryPromise = new Promise(function (resolve, reject) {
+        var script = document.createElement("script");
+        script.src = "assets/vendor/pdf-lib-1.17.1.min.js";
+        script.onload = resolve;
+        script.onerror = function () { script.remove(); pdfLibraryPromise = null; reject(new Error("PDF library unavailable")); };
+        document.head.appendChild(script);
+      });
+    }
+    return pdfLibraryPromise;
+  }
+  async function downloadCertificate() {
+    if (!request || downloading) { return; }
+    var token = generation;
+    var selectedRequest = request;
+    downloading = true; paint(); message("Preparando el PDF…");
+    try {
+      var content;
+      if (selectedRequest.demo) {
+        await loadPdfLibrary();
+        if (!demoPdf) { demoPdf = await window.PLANNECertificatePDF.render(selectedRequest, config, window.PDFLib); }
+        content = demoPdf;
+      } else {
+        var response = await window.supabaseClient.functions.invoke(config.emailFunction, {
+          body: { request_id: selectedRequest.id, action: "download" }
+        });
+        if (response.error || !response.data || response.data.content_type !== "application/pdf") { throw new Error("PDF unavailable"); }
+        content = response.data.content_base64;
+      }
+      if (token !== generation || request !== selectedRequest) { return; }
+      var raw = window.atob(content);
+      if (raw.slice(0, 5) !== "%PDF-") { throw new Error("Invalid PDF"); }
+      var bytes = Uint8Array.from(raw, function (character) { return character.charCodeAt(0); });
+      var url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+      var link = document.createElement("a");
+      link.href = url;
+      link.download = "Certificado_PLANNE.pdf";
+      document.body.appendChild(link);
+      link.click(); link.remove();
+      window.setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+      message(selectedRequest.demo ? "PDF de demostración preparado. No se guardó ni se envió ningún dato real." : "PDF preparado para descargar. Es el mismo archivo que se adjunta al correo.");
+    } catch (error) {
+      if (token === generation) { message("No se pudo descargar el PDF. Su solicitud se conserva; intente nuevamente."); }
+    } finally {
+      if (token === generation) { downloading = false; paint(); }
+    }
   }
   window.PLANNECertificates = { update: update, reset: reset, isEligible: eligible };
   document.addEventListener("DOMContentLoaded", function () {
@@ -182,10 +228,11 @@
     byId("certificateDemoResetButton").addEventListener("click", function () {
       if (!context || !context.demo) { return; }
       request = null;
+      demoPdf = "";
       byId("certificateForm").reset();
       message("");
       open();
     });
-    byId("certificatePrintButton").addEventListener("click", printCertificate);
+    byId("certificatePrintButton").addEventListener("click", downloadCertificate);
   });
 })();

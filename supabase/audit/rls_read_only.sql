@@ -7,11 +7,11 @@ select n.nspname as schema_name, c.relname as table_name,
   pg_get_userbyid(c.relowner) as owner
 from pg_class c join pg_namespace n on n.oid = c.relnamespace
 where n.nspname = 'public' and c.relname in
-  ('profiles','progress','diagnostic_answers','quiz_attempts','certificate_requests','certificate_instruments','certificate_demo_accounts');
+  ('profiles','progress','diagnostic_answers','quiz_attempts','certificate_requests','certificate_demo_accounts');
 
 select schemaname, tablename, policyname, permissive, roles, cmd, qual, with_check
 from pg_policies where schemaname = 'public' and tablename in
-  ('profiles','progress','diagnostic_answers','quiz_attempts','certificate_requests','certificate_instruments','certificate_demo_accounts')
+  ('profiles','progress','diagnostic_answers','quiz_attempts','certificate_requests','certificate_demo_accounts')
 order by tablename, policyname;
 
 select r.role_name, t.table_name,
@@ -23,7 +23,7 @@ from (values ('anon'),('authenticated'),('service_role')) r(role_name)
 cross join (
   select c.oid, c.relname as table_name from pg_class c join pg_namespace n on n.oid = c.relnamespace
   where n.nspname = 'public' and c.relname in
-    ('profiles','progress','diagnostic_answers','quiz_attempts','certificate_requests','certificate_instruments','certificate_demo_accounts')
+    ('profiles','progress','diagnostic_answers','quiz_attempts','certificate_requests','certificate_demo_accounts')
 ) t order by table_name, role_name;
 
 select c.relname as table_name, a.attname as column_name,
@@ -35,7 +35,7 @@ from pg_class c join pg_namespace n on n.oid = c.relnamespace
 join pg_attribute a on a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped
 left join pg_attrdef d on d.adrelid = a.attrelid and d.adnum = a.attnum
 where n.nspname = 'public' and c.relname in
-  ('profiles','progress','diagnostic_answers','quiz_attempts','certificate_requests','certificate_instruments','certificate_demo_accounts')
+  ('profiles','progress','diagnostic_answers','quiz_attempts','certificate_requests','certificate_demo_accounts')
 order by c.relname, a.attnum;
 
 -- Review reachable SECURITY DEFINER routines too: RLS alone does not describe
@@ -54,7 +54,7 @@ from pg_trigger t join pg_proc p on p.oid = t.tgfoid
 where not t.tgisinternal and t.tgrelid in (
   select c.oid from pg_class c join pg_namespace n on n.oid = c.relnamespace
   where n.nspname = 'public' and c.relname in
-    ('diagnostic_answers','quiz_attempts','certificate_requests','certificate_instruments','certificate_demo_accounts')
+    ('diagnostic_answers','quiz_attempts','certificate_requests','certificate_demo_accounts')
 );
 
 commit;

@@ -4,11 +4,11 @@
   window.APP_DATA = {
     certificate: {
       programName: "PLANNE",
-      institution: "PLANNE · Neuroliderazgo educativo",
+      institution: "Plataforma Digital de Neuroliderazgo Educativo",
       closingMessage: "Su compromiso con el aprendizaje y la reflexión directiva contribuye a una gestión educativa más consciente. Gracias por completar este recorrido.",
       certificateTitle: "Constancia de finalización",
-      certificateText: "ha completado el recorrido formativo de la Plataforma Digital de Neuroliderazgo Educativo, que integra diagnóstico, neuroeducación, neuroliderazgo y mejora institucional.",
-      signatureLabel: "Coordinación del programa PLANNE",
+      certificateText: "ha completado el recorrido educativo participativo de PLANNE, que integra diagnóstico, neuroeducación, neuroliderazgo y mejora institucional.",
+      signatureLabel: "Firma o responsable · pendiente de definir",
       emailFunction: "send-certificate"
     },
     settings: {

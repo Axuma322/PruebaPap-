@@ -26,25 +26,23 @@ test('certificate requires a real loaded session, both DNA attempts and every st
   }
 });
 
-test('printable certificate escapes personal data and uses the recorded date', () => {
+test('email greeting escapes personal data and announces the actual PDF attachment', () => {
   const context = {};
-  vm.runInNewContext(fs.readFileSync(path.join(root, 'supabase/functions/_shared/certificate-template.js'), 'utf8'), context);
-  const html = context.PLANNECertificateTemplate.render({full_name:'<script>alert(1)</script>',
-    national_id:'<img src=x>',certificate_code:'PLANNE-123',completion_date:'2026-11-24T02:00:00Z'},
-    {institution:'Institución & comunidad'});
+  vm.runInNewContext(fs.readFileSync(path.join(root, 'supabase/functions/_shared/certificate-pdf.js'), 'utf8'), context);
+  const html = context.PLANNECertificatePDF.emailMessage({full_name:'<script>alert(1)</script>',certificate_code:'PLANNE-123'});
   assert.ok(!html.includes('<script>'));
   assert.ok(!html.includes('<img src=x>'));
   assert.ok(html.includes('&lt;script&gt;'));
-  assert.ok(html.includes('Institución &amp; comunidad'));
-  assert.ok(html.includes('23 de noviembre de 2026'));
-  assert.ok(html.includes('@media print'));
+  assert.ok(html.includes('Certificado_PLANNE.pdf'));
+  assert.ok(html.includes('no constituye una acreditación oficial'));
   assert.ok(html.includes('PLANNE-123'));
 });
 
-test('demonstration certificate is clearly marked', () => {
+test('PDF renderer is shared with demo without needing a backend', () => {
   const context = {};
-  vm.runInNewContext(fs.readFileSync(path.join(root, 'supabase/functions/_shared/certificate-template.js'), 'utf8'), context);
-  assert.ok(context.PLANNECertificateTemplate.render({demo:true,completion_date:'2026-11-24'}).includes('sin validez'));
+  vm.runInNewContext(fs.readFileSync(path.join(root, 'supabase/functions/_shared/certificate-pdf.js'), 'utf8'), context);
+  assert.equal(typeof context.PLANNECertificatePDF.render,'function');
+  assert.equal(context.PLANNECertificatePDF.escape('"<&'), '&quot;&lt;&amp;');
 });
 
 test('legacy default initial cannot hide an explicit final and chronology cannot invent a final', () => {
@@ -61,13 +59,12 @@ test('legacy default initial cannot hide an explicit final and chronology cannot
   assert.ok(rows.every(r=>r.attemptType==='initial'));
 });
 
-test('all participant and configurable strings remain text, not HTML or public links', () => {
+test('participant strings in email remain escaped text, not HTML or public links', () => {
   const context = {};
-  vm.runInNewContext(fs.readFileSync(path.join(root, 'supabase/functions/_shared/certificate-template.js'), 'utf8'), context);
+  vm.runInNewContext(fs.readFileSync(path.join(root, 'supabase/functions/_shared/certificate-pdf.js'), 'utf8'), context);
   const payload = `"><img src="https://evil.invalid" onerror='alert(1)'>&`;
-  const config = Object.fromEntries(['institution','certificateTitle','certificateText','programName','signatureLabel'].map(key=>[key,payload]));
-  const html = context.PLANNECertificateTemplate.render({full_name:payload,national_id:payload,
-    certificate_code:payload,email:'private@example.com',completion_date:'2026-11-24'}, config);
+  const html = context.PLANNECertificatePDF.emailMessage({full_name:payload,national_id:payload,
+    certificate_code:payload,email:'private@example.com',completion_date:'2026-11-24'});
   assert.ok(!html.includes('<img'));
   assert.ok(!html.includes('src="https://evil.invalid"'));
   assert.ok(html.includes('&lt;img'));

@@ -1,13 +1,15 @@
 const fs=require('fs'),path=require('path'),http=require('http'),assert=require('node:assert/strict');
 const {chromium}=require('playwright-core');
+const pdfLib=require('pdf-lib');
+require('../supabase/functions/_shared/certificate-pdf.js');
 const root=path.join(__dirname,'..');
 const artifactDir=path.join(require('os').tmpdir(),'planne-certificate-browser');fs.mkdirSync(artifactDir,{recursive:true});
 const mock=`
-window.mockWrites=[];window.mockEmails=[];
+window.mockWrites=[];window.mockEmails=[];window.mockDownloads=[];
 const scenario=window.testScenario||'complete';
 window.supabase={createClient(){return {
 auth:{async getSession(){return {data:{session:scenario==='logout'?null:{user:{id:'test-user',email:'tester@usuarios.example.com'}}},error:null}},async signOut(){return {error:null}}},
-functions:{async invoke(name,options){mockEmails.push({name,options});if(window.emailFails)return {error:{message:'offline'}};const r=JSON.parse(localStorage.getItem('mock_request'));r.status='sent';localStorage.setItem('mock_request',JSON.stringify(r));return {data:{status:'sent'},error:null}}},
+functions:{async invoke(name,options){if(options.body.action==='download'){mockDownloads.push({name,options});return {data:{filename:'Certificado_PLANNE.pdf',content_type:'application/pdf',content_base64:window.mockDownloadPdf},error:null}}mockEmails.push({name,options});if(window.emailFails)return {error:{message:'offline'}};const r=JSON.parse(localStorage.getItem('mock_request'));r.status='sent';localStorage.setItem('mock_request',JSON.stringify(r));return {data:{status:'sent'},error:null}}},
 from(table){let inserted=null;const filters=[];const q={select(){return this},eq(k,v){filters.push([k,v]);return this},order(){return this},limit(){return this},
 insert(value){inserted=value;return this},upsert(){return this},maybeSingle(){return this.resolve(true)},single(){return this.resolve(true)},
 then(ok,bad){return this.resolve(false).then(ok,bad)},async resolve(single){
@@ -40,7 +42,8 @@ const server=http.createServer((req,res)=>{
  const errors=[];let externals=[];
  const context=await browser.newContext();
  await context.route('**/*',route=>{if(!route.request().url().startsWith(origin)){externals.push(route.request().url());route.abort()}else route.continue()});
- await context.addInitScript(()=>localStorage.setItem('planne:usage-guide-seen','true'));
+ const mockDownloadPdf=await globalThis.PLANNECertificatePDF.render({full_name:'Nombre Apellido',national_id:'123',completion_date:'2026-11-24T12:00:00Z',certificate_code:'PLANNE-TEST-123'},{},pdfLib);
+ await context.addInitScript(pdf=>{window.mockDownloadPdf=pdf;localStorage.setItem('planne:usage-guide-seen','true')},mockDownloadPdf);
  const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
  await page.goto(origin);await page.waitForSelector('#certificateDialog[open]');
  assert.equal(await page.locator('#stageGrid .stage-card').count(),4);
@@ -61,10 +64,11 @@ const server=http.createServer((req,res)=>{
  await page.locator('#certificateForm').evaluate(form=>{form.requestSubmit();form.requestSubmit()});
  await page.waitForFunction(()=>document.querySelector('#certificateRequestStatus').textContent.includes('fue enviado'));
  assert.equal(await page.evaluate(()=>mockWrites.length),1);assert.equal(await page.evaluate(()=>mockEmails.length),1);
- const popupPromise=page.waitForEvent('popup');await page.locator('#certificatePrintButton').click();const popup=await popupPromise;
- await popup.waitForLoadState();assert.ok((await popup.locator('body').innerText()).includes('Nombre Apellido'));
- await popup.pdf({path:path.join(artifactDir,'certificate-sample.pdf'),preferCSSPageSize:true,printBackground:true});
- await popup.screenshot({path:path.join(artifactDir,'certificate-print.png'),fullPage:true});await popup.close();
+ const downloadPromise=page.waitForEvent('download');await page.locator('#certificatePrintButton').click();const downloaded=await downloadPromise;
+ assert.equal(downloaded.suggestedFilename(),'Certificado_PLANNE.pdf');
+ await downloaded.saveAs(path.join(artifactDir,'certificate-sample.pdf'));
+ assert.equal(fs.readFileSync(path.join(artifactDir,'certificate-sample.pdf')).toString('base64'),mockDownloadPdf);
+ assert.equal(await page.evaluate(()=>mockDownloads.length),1);assert.equal(await page.evaluate(()=>mockEmails.length),1);
  await page.locator('#certificateCloseButton').click();
  await page.reload();await page.waitForFunction(()=>document.querySelector('#certificateSummaryStatus').textContent.includes('fue enviado'));
  assert.equal(await page.locator('#certificateDialog').evaluate(d=>d.open),false);
@@ -83,13 +87,16 @@ const server=http.createServer((req,res)=>{
    await p.locator('#certificateSubmitButton').click();
    assert.equal(await p.evaluate(()=>mockWrites.length),0);assert.equal(await p.evaluate(()=>mockEmails.length),0);
    assert.ok((await p.locator('#certificateRequestStatus').innerText()).includes('simulada'));
-   const examplePromise=p.waitForEvent('popup');
+   const examplePromise=p.waitForEvent('download');
    await p.locator('#certificatePrintButton').click();
-   const example=await examplePromise;await example.waitForLoadState();
-   await example.waitForSelector('main');
-   assert.match(await example.locator('body').innerText(),/muestra de demostración/i);
-   assert.ok((await example.locator('body').innerText()).includes('No constituye una acreditación oficial'));
-   await example.close();
+   const example=await examplePromise;
+   await example.saveAs(path.join(artifactDir,'demo-certificate.pdf'));
+   const bytes=fs.readFileSync(path.join(artifactDir,'demo-certificate.pdf'));
+   assert.equal(bytes.subarray(0,5).toString(),'%PDF-');
+   const exampleDoc=await pdfLib.PDFDocument.load(bytes);assert.equal(exampleDoc.getPageCount(),1);
+   const raw=exampleDoc.getPages()[0].node.Contents().asArray().map(ref=>Buffer.from(pdfLib.decodePDFRawStream(exampleDoc.context.lookup(ref)).decode()).toString()).join('\n');
+   assert.ok(raw.includes(Buffer.from('SIN VALIDEZ').toString('hex').toUpperCase()));
+   assert.equal(await p.evaluate(()=>mockDownloads.length),0);
    await p.setViewportSize({width:390,height:900});
    await p.screenshot({path:path.join(artifactDir,'demo-registered-mobile.png')});
    await p.locator('#certificateDemoResetButton').click();
